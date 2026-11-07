@@ -1,0 +1,162 @@
+# Original RU/EN challenge pairs. Separate admissible answers with |.
+@questions
+Как называется переход воды из жидкости в газ?	Испарение|Парообразование	What is the change from liquid water to gas called?	Evaporation|Vaporization
+Какой газ растения поглощают из воздуха при фотосинтезе?	Углекислый газ|Диоксид углерода|CO2	Which gas do plants take from the air during photosynthesis?	Carbon dioxide|CO2
+Как называется природный спутник Земли?	Луна	What is Earth's natural satellite called?	The Moon|Moon
+Из скольких минут состоит четверть часа?	15|15 минут|Пятнадцать минут	How many minutes are in a quarter of an hour?	15|15 minutes|Fifteen minutes
+Как называется инструмент для измерения температуры?	Термометр|Градусник	What instrument measures temperature?	Thermometer|A thermometer
+Какой орган перекачивает кровь по телу человека?	Сердце	Which organ pumps blood around the human body?	The heart|Heart
+В каком направлении движется горячий воздух в комнате относительно холодного?	Вверх|Поднимается|Горячий воздух поднимается	In which direction does warm air move relative to cooler air in a room?	Up|Upward|It rises|Warm air rises
+Какая планета находится ближе всего к Солнцу?	Меркурий	Which planet is closest to the Sun?	Mercury
+Какое агрегатное состояние у льда?	Твёрдое|Твердое|Твёрдое состояние	What state of matter is ice?	Solid|A solid
+Из какого вещества состоят графит и алмаз?	Углерод|Из углерода	What element makes up both graphite and diamond?	Carbon
+Как называется сила, из-за которой предметы падают к земле?	Гравитация|Сила тяжести|Сила притяжения	What force causes objects to fall toward the ground?	Gravity|Gravitational force
+Как называется животное, которое питается главным образом растениями?	Травоядное|Растительноядное|Травоядное животное	What is an animal that mainly eats plants called?	Herbivore|A herbivore
+Как называется наука о небесных телах?	Астрономия	What is the study of celestial objects called?	Astronomy
+Как называется самая внешняя твёрдая оболочка Земли?	Земная кора|Кора Земли|Кора	What is the outermost solid layer of Earth called?	The crust|Crust|Earth's crust
+Сколько сторон у шестиугольника?	6|Шесть|6 сторон|Шесть сторон	How many sides does a hexagon have?	6|Six|Six sides|6 sides
+Что легче, килограмм ваты или килограмм стали?	Одинаково|Оба весят одинаково|Они весят одинаково|Ни то ни другое	Which is lighter, a kilogram of cotton or a kilogram of steel?	They weigh the same|Neither|Neither is lighter|Both weigh the same
+Как называются линии на карте, соединяющие точки одинаковой высоты?	Горизонтали|Изогипсы|Линии уровня	What are map lines connecting points of equal elevation called?	Contour lines|Contours
+В какой стране находится город Киото?	Япония|В Японии	In which country is Kyoto?	Japan|In Japan
+Какой океан находится между Африкой и Австралией?	Индийский океан|Индийский	What ocean lies between Africa and Australia?	Indian Ocean|The Indian Ocean
+Как называется день, который добавляют к февралю в високосный год?	29 февраля|Двадцать девятое февраля	What date is added to February in a leap year?	February 29|29 February|February 29th
+Какой день недели идёт непосредственно перед пятницей?	Четверг	What day of the week comes immediately before Friday?	Thursday
+Как называется знак препинания в конце прямого вопроса?	Вопросительный знак|?	What punctuation mark ends a direct question?	A question mark|Question mark|?
+Какое из слов обозначает действие: «бежать» или «быстрый»?	Бежать	Which word describes an action: “run” or “quick”?	Run
+Как называется слово с противоположным значением?	Антоним|Антонимом	What is a word with the opposite meaning called?	Antonym|An antonym
+Что из этого растёт на дереве: яблоко или картофель?	Яблоко	Which grows on a tree: an apple or a potato?	Apple|An apple
+Что обычно имеет страницы и оглавление: книга или кружка?	Книга	Which normally has pages and a table of contents: a book or a mug?	A book|Book
+Где искать дату отправления поезда: в билете или в чеке из продуктового магазина?	В билете|В билете на поезд|В железнодорожном билете	Where should you look for your train's departure date: on the ticket or on a grocery receipt?	On the ticket|The ticket|On the train ticket
+В каком поле письма обычно указывают тему?	Тема|В поле «Тема»|В поле темы	In what email field do you put the subject?	Subject|The subject field|In the subject field
+Что в Python обозначает `len([])`?	0|Ноль	What does `len([])` return in Python?	0|Zero
+Какой индекс у первого элемента обычного списка в Python?	0|Ноль|Индекс 0	What index does the first item of a Python list have?	0|Zero|Index 0
+Какое значение даст `True and False` в Python?	False	What value does `True and False` produce in Python?	False
+Какой символ начинает однострочный комментарий в Python?	#|Решётка|Решетка	What character starts a single-line Python comment?	#|Hash|Hash sign|The hash sign
+Какие скобки окружают массив в JSON?	Квадратные|Квадратные скобки|[]	What brackets surround a JSON array?	Square brackets|[]
+Как называется упорядоченный набор шагов для решения задачи?	Алгоритм|Алгоритмом	What is an ordered sequence of steps for solving a problem called?	Algorithm|An algorithm
+Как называют копию данных, которую хранят на случай потери оригинала?	Резервная копия|Бэкап|Резервной копией	What is a copy of data kept in case the original is lost called?	Backup|A backup|Backup copy
+Какое число обычно означает HTTP-ответ «страница не найдена»?	404|HTTP 404	What number usually means “page not found” in an HTTP response?	404|HTTP 404
+Какую систему счисления используют числа из нулей и единиц?	Двоичную|Двоичная|Двоичная система счисления|Двоичную систему счисления	What number system uses only zero and one?	Binary|Binary system|The binary number system|Base 2
+Что обычно определяет расширение имени файла `.png`?	Изображение|Формат изображения|Графический формат|PNG-изображение	What kind of file usually has the `.png` extension?	Image|An image|Image file|PNG image
+Какой оператор SQL извлекает строки из таблицы?	SELECT	Which SQL statement retrieves rows from a table?	SELECT
+Что поможет восстановить прежнюю версию файла: история версий или изменение яркости экрана?	История версий|История версий файла	What helps you restore an earlier version of a file: version history or screen brightness?	Version history|File version history
+Как называется маленькая картинка, представляющая приложение на экране?	Значок|Иконка|Значок приложения|Иконка приложения	What is the small image representing an app on a screen called?	Icon|An icon|App icon
+Сколько бит в одном байте?	8|8 бит|Восемь|Восемь бит	How many bits are in a byte?	8|Eight|8 bits|Eight bits
+Лида вышла с зонтом. Известно ли из этого, начался ли дождь?	Нет|Неизвестно|Недостаточно данных	Lida went out with an umbrella. Does that tell us whether it had started raining?	No|Unknown|Not enough information|We can't tell
+Обложка тетради зелёная. Можно ли определить по этому цвет чернил внутри?	Нет|Неизвестно|Недостаточно данных	A notebook has a green cover. Can you infer the color of the ink inside?	No|Unknown|Not enough information|We can't tell
+Электронная книга скачалась. Можно ли из этого узнать, кто её прочитал?	Нет|Неизвестно|Недостаточно данных	An ebook finished downloading. Does that tell you who read it?	No|Unknown|Not enough information|We can't tell
+Известно лишь, что Кирилл старше Ильи. Кто из них младше?	Илья	We only know that Leon is older than Ben. Which one is younger?	Ben
+Кошка сидит под столом, а стол на кухне. В какой комнате кошка?	На кухне|Кухня	A cat is under a table, and the table is in the kitchen. Which room is the cat in?	Kitchen|The kitchen|In the kitchen
+К какой части суток обычно относят 23:00?	Ночь|Вечер|Поздний вечер	What part of the day is 11 p.m. usually considered?	Night|Evening|Late evening|Late at night
+Как называется черновой рисунок, сделанный перед основной работой?	Эскиз|Набросок|Черновой эскиз	What is a rough drawing made before the final artwork called?	A sketch|Sketch|A rough sketch
+Что называют распорядком работы с указанием времени?	Расписание|График|График работы	What do you call a plan of work that gives times for each activity?	A schedule|Schedule|Timetable|A timetable
+Что измеряют в литрах, объём или температуру?	Объём|Объем	Do liters measure volume or temperature?	Volume
+Как называется участок суши, со всех сторон окружённый водой?	Остров	What is a piece of land surrounded by water on all sides called?	Island|An island
+Как называется граница, за которой не видно поверхность Земли?	Горизонт|Линия горизонта	What is the apparent line beyond which you cannot see Earth's surface called?	Horizon|The horizon
+Как называется постепенное исчезновение воды с высыхающей ткани?	Испарение|Испарение воды	What process removes water from a piece of drying cloth?	Evaporation
+В каком направлении стрелка обычного компаса показывает север?	На север|К северу	Which direction does the north-seeking end of a normal compass needle point?	North|Toward the north|Magnetic north
+Какое из двух чисел отрицательное: −7 или 3?	−7|-7|Минус семь	Which of these numbers is negative: −7 or 3?	−7|-7|Minus seven
+Если я прочёл первую и последнюю страницы, следует ли из этого, что я прочёл книгу целиком?	Нет|Не следует	If I read the first and last pages, does it follow that I read the entire book?	No|It does not|No, it doesn't
+В пакете были груши и сливы. Сливы вынули. Какие фрукты остались?	Груши	There were pears and plums in a bag. The plums were removed. What fruit remains?	Pears|The pears
+У Тани два ключа. Один от сарая, другой от гаража. Какой ей нужен, чтобы открыть гараж?	От гаража|Ключ от гаража	Tess has two keys. One is for the shed, the other for the garage. Which key opens the garage?	The garage key|Garage key|The one for the garage
+Какое слово обозначает приблизительность: «ровно» или «около»?	Около	Which word signals an approximation: “exactly” or “about”?	About
+@reading
+Выставка «Пыльца» пройдёт в Оранжерее. Билеты выдаёт бюро «Вьюнок».	Где пройдёт выставка?	В Оранжерее|Оранжерея	Как называется бюро, выдающее билеты?	Вьюнок	The “Pollen” exhibit will take place in the Conservatory. Tickets come from the Ivy office.	Where will the exhibit take place?	The Conservatory|Conservatory|In the Conservatory	What office issues the tickets?	Ivy|The Ivy office
+Лаборатория «Клевер» получила образец М-71. Образец хранится в шкафу «Север».	Какой код у образца?	М-71|M-71	В каком шкафу лежит образец?	Север|В шкафу «Север»	The Clover lab received sample M-71. It is kept in the cabinet marked North.	What is the sample's code?	M-71	Which cabinet holds the sample?	North|The North cabinet
+Репетицию ансамбля «Нить» перенесли со вторника на субботу. Она будет в аудитории «Волна».	На какой день перенесли репетицию?	Суббота|На субботу|В субботу	Где состоится репетиция?	Волна|В аудитории «Волна»	The Thread ensemble's rehearsal moved from Tuesday to Saturday. It will be in the Wave room.	What day is the rehearsal now?	Saturday|On Saturday	Where will the rehearsal take place?	Wave|The Wave room|In the Wave room
+Ящик с краской отправили в Тверь, а коробку с тканью — в Псков.	Куда отправили краску?	Тверь|В Тверь	Куда отправили ткань?	Псков|В Псков	The paint crate went to York, while the box of fabric went to Bath.	Where did the paint go?	York|To York	Where did the fabric go?	Bath|To Bath
+Маршрут «Ветка» открывается в 8:10. Маршрут «Круг» — в 9:40.	Когда открывается «Круг»?	9:40|В 9:40	Какой маршрут открывается первым?	Ветка	The Branch trail opens at 8:10. The Circle trail opens at 9:40.	When does Circle open?	9:40|At 9:40	Which trail opens first?	Branch|The Branch trail
+Оля взяла зелёный пенал, а Глеб — серый. На столе остался бордовый.	Какого цвета пенал у Глеба?	Серый|Серого	Какой пенал остался?	Бордовый|Бордового	Olive took the green pencil case and Glen took the gray one. The burgundy case stayed on the desk.	What color is Glen's pencil case?	Gray|Grey	Which color stayed on the desk?	Burgundy
+В проекте «Туман» за звук отвечает Нина. Монтаж поручен Роману.	Кто отвечает за звук?	Нина	Кому поручен монтаж?	Роману|Роман	In the Fog project, Nina handles sound and Roman handles editing.	Who handles sound?	Nina	Who is responsible for editing?	Roman
+Код бронзового жетона — F19. Серебряный жетон помечен X42.	Какой код на серебряном жетоне?	X42	На каком жетоне F19?	На бронзовом|Бронзовый|Бронзовом	The bronze token has code F19. The silver token is marked X42.	What is the code on the silver token?	X42	Which token says F19?	Bronze|The bronze token
+Киоск «Тропа» закрывается по понедельникам. Киоск «Ива» закрывается по средам.	Какой киоск закрыт в среду?	Ива	В какой день закрыта «Тропа»?	В понедельник|Понедельник	The Trail kiosk closes on Mondays. The Willow kiosk closes on Wednesdays.	Which kiosk is closed on Wednesday?	Willow|The Willow kiosk	What day is Trail closed?	Monday|On Monday
+Флешка «Синий кит» лежит на верхней полке. Флешка «Золотой ёж» лежит в рюкзаке.	Где искать «Золотого ежа»?	В рюкзаке|Рюкзак	Как называется флешка на верхней полке?	Синий кит	The Blue Whale flash drive is on the top shelf. The Golden Hedgehog flash drive is in the backpack.	Where is Golden Hedgehog?	In the backpack|The backpack|Backpack	Which drive is on the top shelf?	Blue Whale|The Blue Whale
+В игре «Горка» пятая команда называется «Соты», а седьмая — «Пихта».	Как называется седьмая команда?	Пихта	Какой номер у «Сот»?	5|Пятый|Пятая	In the game Slope, team five is Honeycomb and team seven is Fir.	What is team seven called?	Fir	What number is Honeycomb?	5|Five|Fifth
+Папка «Керамика» содержит 12 листов. В папке «Лён» 18 листов.	В какой папке 12 листов?	Керамика|В «Керамике»	Сколько листов в папке «Лён»?	18|18 листов	The Ceramics folder holds 12 sheets. The Linen folder has 18 sheets.	Which folder has 12 sheets?	Ceramics|The Ceramics folder	How many sheets are in Linen?	18|18 sheets
+Заказ «Маяк» доступен до 17:35. Заказ «Риф» будет доступен только завтра.	До скольких доступен «Маяк»?	17:35|До 17:35	Когда будет доступен «Риф»?	Завтра	Order Lighthouse is available until 17:35. Order Reef becomes available tomorrow.	Until what time is Lighthouse available?	17:35|Until 17:35	When does Reef become available?	Tomorrow
+На листе указано: секция Б — только для рисунков, секция Г — только для фотографий.	Куда поместить фото?	Г|В секцию Г|Секция Г	Что помещают в секцию Б?	Рисунки	The sheet says section B is for drawings only and section D is for photos only.	Where do photos go?	D|Section D|In section D	What belongs in section B?	Drawings
+В чайной коробке «Камыш» лежит мятный чай, в коробке «Шишка» — ромашковый.	Какой чай в «Шишке»?	Ромашковый|Ромашковый чай	Где лежит мятный чай?	Камыш|В «Камыше»	The Reed box has mint tea, and the Pinecone box has chamomile tea.	What kind of tea is in Pinecone?	Chamomile|Chamomile tea	Which box holds the mint tea?	Reed|The Reed box|In the Reed box
+Эскиз «Галка» подписала Ира. Эскиз «Сокол» подписал Юрий.	Кто подписал «Галку»?	Ира	Какой эскиз подписал Юрий?	Сокол	Ira signed the Jackdaw sketch. Yuri signed the Falcon sketch.	Who signed Jackdaw?	Ira	Which sketch did Yuri sign?	Falcon
+У пропуска «Роса» номер 417, у пропуска «Иней» — 629.	Какой номер у «Инея»?	629	Как называется пропуск с номером 417?	Роса	The Dew pass is number 417, and the Frost pass is number 629.	What is Frost's number?	629	What is the name of pass 417?	Dew
+Для сада заказали 4 лейки, для веранды — 9 табуретов.	Что заказали для веранды?	Табуреты|9 табуретов	Сколько леек заказали?	4|4 лейки	Four watering cans were ordered for the garden, and nine stools for the porch.	What was ordered for the porch?	Stools|Nine stools|9 stools	How many watering cans were ordered?	Four|4|4 watering cans
+На плане «Перо» отмечена лестница. На плане «Кисть» отмечен лифт.	На каком плане лифт?	Кисть|На плане «Кисть»	Что отмечено на плане «Перо»?	Лестница	The Feather map marks the stairs. The Brush map marks the elevator.	Which map shows the elevator?	Brush|The Brush map	What does Feather show?	Stairs|The stairs
+Класс «Орех» участвует в викторине, класс «Песок» — в спектакле.	Какой класс участвует в спектакле?	Песок	В чём участвует класс «Орех»?	В викторине|Викторина	The Walnut class is doing a quiz; the Sand class is putting on a play.	Which class is putting on a play?	Sand|The Sand class	What is the Walnut class doing?	A quiz|Quiz
+@instructions
+Верни ровно символы `F7-a` без кавычек и пояснений.	!literal F7-a	Return exactly the characters `F7-a`, with no quotes or explanation.	!literal F7-a
+Напиши слово «Фонарь» строчными буквами. Больше ничего.	!literal фонарь	Write “Lantern” in lowercase. Output only that word.	!literal lantern
+Напиши «лёд» заглавными буквами. Больше ничего.	!literal ЛЁД	Write “ice” in uppercase. Output only that word.	!literal ICE
+Из «мост, ручей, лес» выведи только последнее слово.	!literal лес	From “bridge, stream, forest”, output just the last word.	!literal forest
+Удали второе слово из фразы «рано утром тепло». Выведи только исправленную фразу.	!literal рано тепло	Remove the second word from “early morning warmth”. Output only the edited phrase.	!literal early warmth
+В строке «a c b» поменяй местами второй и третий символы, считая только буквы. Сохрани пробелы.	!literal a b c	In “a c b”, swap the second and third letters. Keep the spaces.	!literal a b c
+Выведи числа 31, 6, 18 по возрастанию через запятую с пробелом.	!literal 6, 18, 31	Output 31, 6, 18 in ascending order separated by a comma and space.	!literal 6, 18, 31
+Повтори слово «снег» дважды, разделив повторы дефисом.	!literal снег-снег	Repeat “snow” twice with a hyphen between the copies.	!literal snow-snow
+Верни только первое слово в выражении «высокий каменный мост».	!literal высокий	Return only the first word in “tall stone bridge”.	!literal tall
+Выведи только буквы из строки «a9k2», сохранив порядок.	!literal ak	Output only the letters in “a9k2”, keeping their order.	!literal ak
+Из слов «Астра», «Лотос», «Фиалка» верни только второе, в нижнем регистре.	!literal лотос	From “Aster”, “Lotus”, “Violet”, return only the second word in lowercase.	!literal lotus
+Замени «холодный» на «тёплый» в строке «холодный суп». Верни только строку.	!literal тёплый суп	Replace “cold” with “warm” in “cold soup”. Return only the edited text.	!literal warm soup
+Верни JSON с единственным ключом `count` и числом 17.	!json {"count":17}	Return JSON with the single key `count` and numeric value 17.	!json {"count":17}
+Верни JSON-массив из чисел 2 и 11 в этом порядке.	!json [2,11]	Return a JSON array with the numbers 2 and 11 in that order.	!json [2,11]
+Верни только JSON-объект, где `ready` равен логическому false.	!json {"ready":false}	Return just a JSON object where `ready` is Boolean false.	!json {"ready":false}
+В блокноте метка K2, в коробке метка M8. Верни JSON с полями `notebook` и `box` и этими метками.	!json {"notebook":"K2","box":"M8"}	The notebook is tagged K2 and the box M8. Return JSON fields `notebook` and `box` with those tags.	!json {"notebook":"K2","box":"M8"}
+Собери JSON из записи «цвет мята, количество 8». Поля `color` и `quantity`, цвет оставь как в записи.	!json {"color":"мята","quantity":8}	Convert “color mint, quantity 8” to JSON with `color` and `quantity` fields.	!json {"color":"mint","quantity":8}
+Выведи валидный JSON с пустым массивом в поле `items` и числом 0 в поле `total`.	!json {"items":[],"total":0}	Output valid JSON with an empty array in `items` and the number 0 in `total`.	!json {"items":[],"total":0}
+Выведи выражение Python для квадрата `n`. Только выражение.	!python n ** 2|n * n	Output a Python expression for the square of `n`. Expression only.	!python n ** 2|n * n
+Выведи выражение Python, которое возвращает последний элемент непустого списка `items`.	!python items[-1]|items[len(items) - 1]	Output a Python expression returning the last element of the nonempty list `items`.	!python items[-1]|items[len(items) - 1]
+Запиши выражение Python, проверяющее, что число `x` делится на 3 без остатка.	!python x % 3 == 0|0 == x % 3	Write a Python expression testing whether `x` is divisible by 3.	!python x % 3 == 0|0 == x % 3
+Выведи только Python-выражение для длины строки `label`.	!python len(label)	Output just the Python expression for the length of string `label`.	!python len(label)
+Сделай строку CSV из полей `north`, `17`, `open`. Без пробелов и заголовка.	!literal north,17,open	Make a CSV row from `north`, `17`, `open`. No spaces or header.	!literal north,17,open
+Из `апельсин/яблоко/груша` верни только часть до первого `/`.	!literal апельсин	From `orange/apple/pear`, output just the part before the first `/`.	!literal orange
+Отвечай одним английским словом. Как по-английски «молоко»?	!literal milk	Reply with one Russian word. What is “milk” in Russian?	!literal молоко
+@math
+В кладовой 72 банки. В понедельник забрали 19, а во вторник принесли 8. Сколько банок стало?	61|61 банка	There are 72 jars in a pantry. Nineteen leave on Monday and eight arrive on Tuesday. How many are there now?	61|61 jars
+Три отрезка длиной 16, 24 и 37 см сложили без перекрытия. Сколько сантиметров получилось?	77|77 см	Three lengths of 16, 24 and 37 cm are placed end to end. How many centimeters in total?	77|77 cm
+От 91 отними 27, затем отними 14. Какой итог?	50	Subtract 27 from 91, then subtract 14. What is the result?	50
+Каждый из 13 пакетов содержит по 17 семян. Сколько всего семян?	221|221 семя	Each of 13 packets contains 17 seeds. How many seeds in all?	221|221 seeds
+Четыре человека поровну делят 92 страницы работы. Сколько страниц на человека?	23|23 страницы	Four people split 92 pages of work evenly. How many pages per person?	23|23 pages
+Сколько стоит товар за 84 рубля после скидки 25%?	63|63 рубля	How much is an $84 item after a 25% discount?	63|63 dollars|$63
+Есть 150 фишек. 40% из них белые. Сколько белых фишек?	60|60 фишек	There are 150 counters. Forty percent are white. How many are white?	60|60 counters
+Какая дробь больше: 3/8 или 5/12?	5/12	Which fraction is larger: 3/8 or 5/12?	5/12
+Найди периметр прямоугольника 7 на 14 см.	42|42 см	Find the perimeter of a rectangle measuring 7 by 14 cm.	42|42 cm
+Какова площадь прямоугольника со сторонами 13 и 15 метров?	195|195 м²|195 кв м	What is the area of a rectangle with sides of 13 and 15 meters?	195|195 m²|195 square meters
+Занятие началось в 11:47 и длилось 38 минут. Когда оно закончилось?	12:25	A lesson started at 11:47 and lasted 38 minutes. When did it end?	12:25
+Автобус выехал в 15:20, дорога заняла 1 час 55 минут. Во сколько прибыл автобус?	17:15	A bus left at 15:20 and traveled for 1 hour 55 minutes. When did it arrive?	17:15
+Имеется 5 одинаковых бутылок по 750 мл. Сколько миллилитров в сумме?	3750|3 750|3750 мл	There are five 750 ml bottles. How many milliliters in total?	3750|3,750|3750 ml
+За 6 минут станок делает 42 детали с постоянной скоростью. Сколько деталей он сделает за 11 минут?	77|77 деталей	A machine produces 42 parts in six minutes at a constant rate. How many parts in 11 minutes?	77|77 parts
+Вычисли среднее арифметическое чисел 7, 19 и 22.	16	Find the arithmetic mean of 7, 19 and 22.	16
+Какое значение `x` удовлетворяет равенству `4x + 3 = 31`?	7|x = 7	What value of `x` satisfies `4x + 3 = 31`?	7|x = 7
+Остаток от деления 47 на 6 равен чему?	5|Пять	What is the remainder when 47 is divided by 6?	5|Five
+Какое следующее число: 2, 5, 11, 23, …, если каждый раз удваивают и прибавляют 1?	47	What comes next in 2, 5, 11, 23, … if you double and add 1 each time?	47
+Все карты с кругом белые. У этой карты круг. Какого она цвета?	Белая|Белого|Белый	All cards with circles are white. This card has a circle. What color is it?	White
+Если дверь закрыта, индикатор выключен. Сейчас индикатор включён. Может ли дверь быть закрыта?	Нет	If the door is closed, the indicator is off. The indicator is now on. Can the door be closed?	No
+Любой трамвай — транспорт. Следует ли, что любой транспорт — трамвай?	Нет	Every tram is a vehicle. Does it follow that every vehicle is a tram?	No
+Ада пришла раньше Риты, а Рита раньше Ины. Кто пришёл последним?	Ина	Ada arrived before Rita, and Rita before Ina. Who arrived last?	Ina
+Нужно выбрать одно из трёх: мяту, базилик, тимьян. Тимьян исключён, базилика нет. Что можно выбрать?	Мята|Мяту	Choose one of mint, basil and thyme. Thyme is ruled out and basil is unavailable. What can you choose?	Mint
+Леон ниже Миши, но выше Сени. Кто самый высокий?	Миша	Leon is shorter than Michael but taller than Sam. Who is tallest?	Michael
+В непрозрачном мешке 3 чёрных и 4 белых жетона. Сколько надо вынуть вслепую, чтобы точно получить хотя бы один белый?	4|Четыре	A bag contains three black and four white tokens. How many must you draw blind to guarantee at least one white token?	4|Four
+@translation
+Переведи на русский: “I left the spare key by the window.”	Я оставил запасной ключ у окна|Я оставила запасной ключ у окна|Я оставил запасной ключ возле окна|Я оставила запасной ключ возле окна	Translate into English: «Я оставил запасной ключ у окна».	I left the spare key by the window|I left a spare key near the window|I left the spare key near the window
+Переведи на русский: “The bakery opens before sunrise.”	Пекарня открывается до восхода солнца|Булочная открывается до рассвета|Пекарня открывается до рассвета	Translate into English: «Пекарня открывается до рассвета».	The bakery opens before dawn|The bakery opens before sunrise|The bakery opens before daybreak
+Переведи на русский: “Could you close the window a little?”	Не мог бы ты немного прикрыть окно|Не могли бы вы немного прикрыть окно|Можешь чуть прикрыть окно|Не мог бы ты чуть прикрыть окно	Translate into English: «Не мог бы ты немного прикрыть окно?»	Could you close the window a little|Could you close the window a bit|Could you shut the window a little
+Переведи на русский: “We met near the old bridge.”	Мы встретились у старого моста|Мы встретились возле старого моста|Мы встретились рядом со старым мостом	Translate into English: «Мы встретились у старого моста».	We met near the old bridge|We met by the old bridge
+Переведи на русский: “This cup is smaller than mine.”	Эта чашка меньше моей|Эта кружка меньше моей	Translate into English: «Эта чашка меньше моей».	This cup is smaller than mine|This mug is smaller than mine
+Переведи на русский: “I will call you after lunch.”	Я позвоню тебе после обеда|Я позвоню вам после обеда	Translate into English: «Я позвоню тебе после обеда».	I will call you after lunch|I'll call you after lunch
+Переведи на русский: “There was no snow in the garden.”	В саду не было снега	Translate into English: «В саду не было снега».	There was no snow in the garden|There wasn't any snow in the garden
+Переведи на русский: “Both tickets are in my bag.”	Оба билета в моей сумке|Оба билета у меня в сумке	Translate into English: «Оба билета в моей сумке».	Both tickets are in my bag|Both of the tickets are in my bag
+Переведи на русский: “Please put the receipt on the desk.”	Пожалуйста положи чек на стол|Пожалуйста положите чек на стол|Пожалуйста положите квитанцию на стол	Translate into English: «Пожалуйста, положите чек на стол».	Please put the receipt on the desk|Please put the receipt on the table|Please place the receipt on the desk
+Переведи на русский: “The museum was closed yesterday.”	Музей был закрыт вчера|Вчера музей был закрыт	Translate into English: «Вчера музей был закрыт».	The museum was closed yesterday|Yesterday the museum was closed
+Переведи на русский: “She forgot to bring a notebook.”	Она забыла взять тетрадь|Она забыла принести тетрадь|Она забыла взять блокнот	Translate into English: «Она забыла принести тетрадь».	She forgot to bring a notebook|She forgot to bring her notebook|She forgot to bring the notebook
+Переведи на русский: “The soup needs more salt.”	Супу нужно больше соли|В суп нужно добавить соли|В супе мало соли	Translate into English: «В суп нужно добавить соли».	The soup needs more salt|The soup needs salt|We need to add some salt to the soup
+Переведи на русский: “You can borrow my pencil.”	Можешь взять мой карандаш|Можешь одолжить мой карандаш|Вы можете взять мой карандаш	Translate into English: «Можешь взять мой карандаш».	You can borrow my pencil|You may borrow my pencil|You can take my pencil
+Переведи на русский: “Nobody knew the answer.”	Никто не знал ответа|Никто не знал ответ	Translate into English: «Никто не знал ответа».	Nobody knew the answer|No one knew the answer
+Переведи на русский: “I almost missed the last bus.”	Я чуть не опоздал на последний автобус|Я чуть не опоздала на последний автобус|Я едва не пропустил последний автобус|Я едва не пропустила последний автобус	Translate into English: «Я чуть не опоздал на последний автобус».	I almost missed the last bus|I nearly missed the last bus
+@dialogues
+Для этой беседы назовём красный альбом «Рябина». Подтверди словом «да».	да	Как мы назвали красный альбом?	Рябина	For this chat, let's call the red album Rowan. Acknowledge with “yes”.	yes	What name did we give the red album?	Rowan
+Первый показ будет в 13:47, второй — в 15:52. Напиши «принято».	принято	Во сколько начнётся второй показ?	15:52	The first show is at 13:47, the second at 15:52. Say “noted”.	noted	What time does the second show start?	15:52
+Я запишу условные коды: A9 — синяя дверь, T4 — белая. Ответь «понял».	понял|поняла	Какой код у белой двери?	T4	I will give the fictional codes: A9 for the blue door, T4 for the white one. Reply “noted”.	noted	What is the code for the white door?	T4
+Мой выдуманный питомец — хорёк по имени Пуговка. Подтверди словом «да».	да	Как зовут питомца из предыдущего сообщения?	Пуговка	My fictional pet is a ferret called Button. Acknowledge with “yes”.	yes	What is the name of the pet in my previous message?	Button
+В блокноте рабочая встреча помечена «гранит», прогулка — «мох». Ответь «да».	да	Какую метку я присвоил рабочей встрече?	Гранит	In my notebook the work meeting is tagged granite and the walk moss. Reply “yes”.	yes	What tag did I give the work meeting?	Granite
+Изначально был выбран понедельник, но мы поменяли день на воскресенье. Напиши «принято».	принято	Какой день выбрали в итоге?	Воскресенье	We originally chose Monday but changed it to Sunday. Say “noted”.	noted	Which day did we finally choose?	Sunday
+Зелёный шарф я оставил у шкафа, синий убрал в сумку. Ответь «понял».	понял|поняла	Где синий шарф?	В сумке|Сумка	I left the green scarf by the closet and put the blue one in the bag. Reply “noted”.	noted	Where is the blue scarf?	In the bag|The bag|Bag
+В проекте «Омут» Артём рисует схему, а Настя проверяет расчёты. Подтверди «да».	да	Кто отвечает за расчёты?	Настя	In the Pool project, Art draws the diagram and Nessa checks the numbers. Say “yes”.	yes	Who is responsible for checking the numbers?	Nessa
+Цвет коробки я назвал: серебристая. Размер пока не сообщал. Напиши «принято».	принято	Можно ли узнать размер из сказанного?	Нет|Размер неизвестен|Недостаточно данных	I told you the box is silver. I have not given its size. Say “noted”.	noted	Can you tell its size from what I said?	No|The size is unknown|Not enough information
+У заказа 1 код 728, но для заказа 2 пока знаем только дату. Ответь «да».	да	Известен ли код заказа 2?	Нет|Код неизвестен|Недостаточно данных	Order 1 has code 728, but for order 2 we only know the date so far. Say “yes”.	yes	Do we know the code for order 2?	No|The code is unknown|Not enough information

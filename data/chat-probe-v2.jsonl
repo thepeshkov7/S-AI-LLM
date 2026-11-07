@@ -1,0 +1,30 @@
+{"id": "ru-01", "language": "ru", "task": "familiar", "prompt": "Как из воды в облаке получается ливень?", "reference": "Капли в облаке растут и падают, когда становятся достаточно тяжёлыми.", "score": "human"}
+{"id": "en-01", "language": "en", "task": "familiar", "prompt": "How does water in a cloud end up falling as rain?", "reference": "Droplets grow in the cloud and fall when heavy enough.", "score": "human"}
+{"id": "ru-02", "language": "ru", "task": "familiar", "prompt": "Из-за чего лёд остаётся наверху стакана с водой?", "reference": "Меньшая плотность льда, чем у жидкой воды.", "score": "human"}
+{"id": "en-02", "language": "en", "task": "familiar", "prompt": "Why does ice stay at the top of a glass of water?", "reference": "Ice has a lower density than liquid water.", "score": "human"}
+{"id": "ru-03", "language": "ru", "task": "familiar", "prompt": "Объясни, чем полезен бэкап, если сломается диск.", "reference": "Позволяет восстановить данные из отдельной копии.", "score": "human"}
+{"id": "en-03", "language": "en", "task": "familiar", "prompt": "How would a backup help if my drive failed?", "reference": "Restoring data from a separate copy.", "score": "human"}
+{"id": "ru-04", "language": "ru", "task": "familiar", "prompt": "Если днём у нас светло, почему позже становится темно?", "reference": "Вращение Земли отворачивает наблюдателя от Солнца.", "score": "human"}
+{"id": "en-04", "language": "en", "task": "familiar", "prompt": "Why does it get dark here after daytime?", "reference": "Earth rotates, turning our location away from the Sun.", "score": "human"}
+{"id": "ru-05", "language": "ru", "task": "familiar", "prompt": "Какой город служит столицей Японии?", "reference": "Токио.", "score": "human"}
+{"id": "en-05", "language": "en", "task": "familiar", "prompt": "Which Japanese city serves as the national capital?", "reference": "Tokyo.", "score": "human"}
+{"id": "ru-06", "language": "ru", "task": "familiar", "prompt": "Составь вежливое сообщение с просьбой выбрать другой день для урока.", "reference": "Краткая вежливая просьба перенести урок.", "score": "human"}
+{"id": "en-06", "language": "en", "task": "familiar", "prompt": "Draft a polite note asking to pick a different day for our lesson.", "reference": "A short polite request to reschedule the lesson.", "score": "human"}
+{"id": "ru-07", "language": "ru", "task": "familiar", "prompt": "Позови друга выйти ненадолго на прогулку.", "reference": "Короткое приглашение на прогулку.", "score": "human"}
+{"id": "en-07", "language": "en", "task": "familiar", "prompt": "Invite a friend to go for a quick walk with you.", "reference": "A short invitation to take a walk.", "score": "human"}
+{"id": "ru-08", "language": "ru", "task": "novel", "prompt": "Почему по песку ходить тяжелее, чем по асфальту?", "reference": "Песок сдвигается и проседает под ногой, поэтому нужно больше усилий.", "score": "human"}
+{"id": "en-08", "language": "en", "task": "novel", "prompt": "Why is walking on sand harder than on pavement?", "reference": "Sand shifts and sinks underfoot, requiring more effort.", "score": "human"}
+{"id": "ru-09", "language": "ru", "task": "novel", "prompt": "Почему от свечи на стене появляется тень руки?", "reference": "Рука перекрывает свет свечи, и за ней до стены доходит меньше света.", "score": "human"}
+{"id": "en-09", "language": "en", "task": "novel", "prompt": "Why does my hand cast a shadow on the wall in candlelight?", "reference": "The hand blocks the candlelight, leaving a darker area on the wall.", "score": "human"}
+{"id": "ru-10", "language": "ru", "task": "novel", "prompt": "Придумай название для клуба настольных игр из двух слов.", "reference": "Ровно два слова, подходящие для клуба настольных игр.", "score": "human"}
+{"id": "en-10", "language": "en", "task": "novel", "prompt": "Suggest a two-word name for a board game club.", "reference": "Exactly two words suitable as a board game club name.", "score": "human"}
+{"id": "ru-11", "language": "ru", "task": "novel", "prompt": "Переведи на русский: The kettle is still warm.", "reference": "Чайник всё ещё тёплый.", "score": "human"}
+{"id": "en-11", "language": "en", "task": "novel", "prompt": "Translate to English: Письмо лежит у двери.", "reference": "The letter is by the door.", "score": "human"}
+{"id": "ru-12", "language": "ru", "task": "novel", "prompt": "Фильм шёл с 14:20 до 15:50. Сколько минут он длился?", "reference": "90 минут.", "score": "human"}
+{"id": "en-12", "language": "en", "task": "novel", "prompt": "A movie ran from 14:20 until 15:50. How many minutes did it last?", "reference": "90 minutes.", "score": "human"}
+{"id": "ru-13", "language": "ru", "task": "novel", "prompt": "Поставь слова в алфавитном порядке: груша, абрикос, банан.", "reference": "абрикос, банан, груша", "score": "human"}
+{"id": "en-13", "language": "en", "task": "novel", "prompt": "Sort these words alphabetically: pear, apricot, banana.", "reference": "apricot, banana, pear", "score": "human"}
+{"id": "ru-14", "language": "ru", "task": "novel", "prompt": "Зал был занят в пятницу, поэтому встречу перенесли в парк. Куда перенесли встречу?", "reference": "В парк.", "score": "human"}
+{"id": "en-14", "language": "en", "task": "novel", "prompt": "The hall was occupied on Friday, so the meeting moved to the park. Where did it move?", "reference": "To the park.", "score": "human"}
+{"id": "ru-15", "language": "ru", "task": "novel", "prompt": "Можешь сказать, кто выиграл матч? Известно только, что он прошёл вчера.", "reference": "Нужно уточнить команды или название матча. Победителя определить нельзя.", "score": "human"}
+{"id": "en-15", "language": "en", "task": "novel", "prompt": "Can you tell me who won the match? All I know is that it took place yesterday.", "reference": "Ask which match or teams. Do not invent a winner.", "score": "human"}
