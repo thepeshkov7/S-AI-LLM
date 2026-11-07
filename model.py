@@ -58,14 +58,22 @@ class TinyLLM(nn.Module):
         if isinstance(module, nn.Linear) and module.bias is not None:
             nn.init.zeros_(module.bias)
 
-    def forward(self, ids, targets=None):
+    def _encode(self, ids):
         length = ids.size(1)
         if not 0 < length <= self.context:
             raise ValueError("Input must contain between one token and the model context length")
         positions = torch.arange(length, device=ids.device)
         hidden = self.token(ids) + self.position(positions)[None, :, :]
-        logits = self.output(self.norm(self.blocks(hidden)))
+        return self.norm(self.blocks(hidden))
+
+    def forward(self, ids, targets=None):
+        logits = self.output(self._encode(ids))
         loss = None
         if targets is not None:
             loss = F.cross_entropy(logits.flatten(0, 1), targets.flatten(), ignore_index=-100)
         return logits, loss
+
+    def answer_loss(self, ids, targets):
+        """Compute the language-model loss only at supervised target positions."""
+        active = targets != -100
+        return F.cross_entropy(self.output(self._encode(ids)[active]), targets[active])

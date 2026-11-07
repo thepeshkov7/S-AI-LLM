@@ -131,24 +131,28 @@ def evaluate(model, documents, batch_size, device):
     }
 
 
-def save_checkpoint(path, model, tokenizer, metrics):
+def atomic_torch_save(payload, path):
     path.parent.mkdir(parents=True, exist_ok=True)
     with NamedTemporaryFile(dir=path.parent, prefix=f".{path.name}.", delete=False) as output:
         temporary_path = Path(output.name)
     try:
-        torch.save(
-            {
-                "format_version": 1,
-                "config": asdict(model.config),
-                "tokenizer": tokenizer.to_str(),
-                "model": model.state_dict(),
-                "metrics": metrics,
-            },
-            temporary_path,
-        )
+        torch.save(payload, temporary_path)
         os.replace(temporary_path, path)
     finally:
         temporary_path.unlink(missing_ok=True)
+
+
+def save_checkpoint(path, model, tokenizer, metrics):
+    atomic_torch_save(
+        {
+            "format_version": 1,
+            "config": asdict(model.config),
+            "tokenizer": tokenizer.to_str(),
+            "model": model.state_dict(),
+            "metrics": metrics,
+        },
+        path,
+    )
 
 
 def main():

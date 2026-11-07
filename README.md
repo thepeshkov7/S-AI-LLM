@@ -102,3 +102,74 @@ The probe includes reference criteria for manual review. To compare with
 the earlier chat benchmark, run `evaluate_chat.py` on the same frozen file
 for both checkpoints with `--language-prefix`. The existing private
 `/chat` endpoint uses that language prefix for one-turn generation.
+
+## Packed bilingual pretraining and reviewed dialogue tuning
+
+The packed trainer reads token streams from disk and gives each language half
+of every batch. It checks each stream against its manifest. Documents are
+separated by EOS tokens. Training windows can span those boundaries. Validation
+and test streams come from held-out documents. The sampler, optimizer, latest
+weights and best validation weights are saved together at evaluation points
+and explicit pauses. A run resumes with the same data and configuration.
+
+To build the corpus, sample pages from the dated Wikipedia snapshot and prepare
+the public-domain book corpus with the original preparation script. The data
+viewer can rate-limit requests. After completing a sufficient bilingual cache,
+use `--cached-only` to build the available pages. The corpus manifest records
+the exact offsets and article attribution used by the run.
+
+```bash
+python prepare_pilot.py --sample-pages 48 --output corpus/wiki-wide
+python prepare_corpus.py --output corpus/books
+python packed_corpus.py --source corpus/wiki-wide --source corpus/books \
+  --output corpus/packed-wide --vocab-size 6144
+python pretrain_packed.py --corpus corpus/packed-wide --output runs/wide/base \
+  --device cpu --steps 1600 --stop-after 100 --eval-every 200 --eval-windows 48
+python pretrain_packed.py --corpus corpus/packed-wide --output runs/wide/base \
+  --device cpu --steps 1600 --resume --eval-every 200 --eval-windows 48
+```
+
+Download the [OASST2 ready messages export](https://huggingface.co/datasets/OpenAssistant/oasst2/blob/main/2023-11-05_oasst2_ready.messages.jsonl.gz).
+The preparation script filters by review, rank and safety labels and excludes
+identical normalized benchmark prompts. It keeps complete one- or two-turn
+dialogues and separates train, validation and test by conversation tree. Tuning
+uses loss on the final assistant turn only. The vocabulary is learned from the
+pretraining corpus.
+
+```bash
+python make_chat_eval.py --output runs/wide/chat-eval-v1.jsonl
+python - <<'PY'
+import json
+from pathlib import Path
+
+run = Path("runs/wide")
+rows = (run / "chat-eval-v1.jsonl").read_text(encoding="utf-8").splitlines()
+automatic = [json.loads(row) for row in rows if json.loads(row)["score"] != "human"]
+probe = [json.loads(row) for row in Path("data/chat-probe-v2.jsonl").read_text(encoding="utf-8").splitlines()]
+(run / "combined.jsonl").write_text(
+    "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in automatic + probe),
+    encoding="utf-8",
+)
+PY
+python prepare_oasst.py --source corpus/source/oasst2.messages.jsonl.gz \
+  --output corpus/oasst2-clean --exclude runs/wide/combined.jsonl
+python tune_oasst.py --base runs/wide/base/pretrained.pt \
+  --dialogues corpus/oasst2-clean --output runs/wide/dialogue.pt
+python evaluate_chat.py --checkpoint runs/wide/dialogue.pt \
+  --benchmark runs/wide/combined.jsonl --language-prefix --output runs/wide/chat-dialogue.json
+```
+
+### GPU throughput measurement
+
+Prepare a larger corpus with a 24,000-token vocabulary before measuring the
+40.1M-parameter candidate. With 65,536 tokens per optimizer step, 7,630 steps
+would process about 500M tokens, including repeated samples. Measure the actual
+device in a short run before committing to the full schedule. The example
+pauses after 100 updates while retaining the full learning-rate schedule.
+
+```bash
+python pretrain_packed.py --corpus corpus/packed-gpu --output runs/gpu \
+  --device cuda --bf16 --width 384 --heads 6 --layers 12 --context 1024 \
+  --batch-size 8 --gradient-accumulation 8 --steps 7630 \
+  --eval-every 100 --eval-windows 48 --stop-after 100
+```
