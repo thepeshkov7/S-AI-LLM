@@ -6,6 +6,13 @@ from torch import nn
 import torch.nn.functional as F
 
 
+def mean_answer_loss(losses, rows, batch_size):
+    """Give each answer equal weight even if their token lengths differ."""
+    counts = torch.bincount(rows, minlength=batch_size)
+    totals = losses.new_zeros(batch_size).scatter_add(0, rows, losses)
+    return (totals / counts.clamp_min(1)).sum() / (counts > 0).sum()
+
+
 @dataclass(frozen=True)
 class ModelConfig:
     vocab_size: int
@@ -76,16 +83,25 @@ class TinyLLM(nn.Module):
             loss = F.cross_entropy(logits.flatten(0, 1), targets.flatten(), ignore_index=-100)
         return logits, loss
 
-    def answer_loss(self, ids, targets):
+    def vocabulary_loss(self, ids, targets):
+        """Next-token loss without the optional dialogue copying head."""
+        logits = self.output(self._encode(ids))
+        return F.cross_entropy(logits.flatten(0, 1), targets.flatten())
+
+    def answer_loss(self, ids, targets, equal_examples=False):
         """Compute the language-model loss only at supervised target positions."""
         active = targets != -100
-        return F.cross_entropy(self.output(self._encode(ids)[active]), targets[active])
+        logits = self.output(self._encode(ids)[active])
+        if not equal_examples:
+            return F.cross_entropy(logits, targets[active])
+        losses = F.cross_entropy(logits, targets[active], reduction="none")
+        return mean_answer_loss(losses, active.nonzero(as_tuple=True)[0], len(ids))
 
     def next_scores(self, ids, positions=None):
-        scores, _ = self(ids)
+        hidden = self._encode(ids)
         if positions is None:
-            return scores[:, -1]
-        return scores[torch.arange(len(ids), device=ids.device), positions]
+            return self.output(hidden[:, -1])
+        return self.output(hidden[torch.arange(len(ids), device=ids.device), positions])
 
 
 class CopyLLM(TinyLLM):
@@ -148,7 +164,7 @@ class CopyLLM(TinyLLM):
         attention = self._copy_attention(states[:, None], hidden, positions[:, None])[:, 0]
         return self._mixture(states, ids, attention)
 
-    def answer_loss(self, ids, targets):
+    def answer_loss(self, ids, targets, equal_examples=False):
         hidden = self._encode(ids)
         positions = torch.arange(ids.size(1), device=ids.device)
         rows, ends = (targets != -100).nonzero(as_tuple=True)
@@ -160,4 +176,5 @@ class CopyLLM(TinyLLM):
         literal = (attention * (source == target)).sum(dim=-1, keepdim=True)
         alias = (attention * (self.copy_aliases[source] == target)).sum(dim=-1, keepdim=True)
         terms = torch.cat((vocab, literal.clamp_min(1e-30).log(), alias.clamp_min(1e-30).log()), dim=-1)
-        return -(terms + self.copy_mode(states).log_softmax(dim=-1)).logsumexp(dim=-1).mean()
+        losses = -(terms + self.copy_mode(states).log_softmax(dim=-1)).logsumexp(dim=-1)
+        return mean_answer_loss(losses, rows, len(ids)) if equal_examples else losses.mean()

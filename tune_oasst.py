@@ -9,7 +9,7 @@ from time import monotonic
 import torch
 
 from finetune import instruction_tensors
-from generate import TextGenerator, format_instruction
+from generate import TextGenerator
 from instruction_data import Example
 from memory_chat import chat_prompt
 from packed_corpus import LANGUAGES, SPLITS, digest
@@ -22,9 +22,8 @@ def dialogue_example(row, generator):
     turns = row["turns"]
     if len(turns) not in (2, 4) or language not in LANGUAGES:
         raise ValueError(f'Invalid dialogue: {row["id"]}')
-    prompt = chat_prompt(turns[0], language)
-    if len(turns) == 4:
-        prompt += f" {turns[1]}\n" + format_instruction(turns[2])
+    history = [(turns[0], turns[1])] if len(turns) == 4 else []
+    prompt = chat_prompt(turns[-2], language, history)
     answer = turns[-1]
     length = len(generator.tokenizer.encode(prompt).ids) + len(generator.tokenizer.encode(" " + answer).ids)
     if length <= generator.model.context:

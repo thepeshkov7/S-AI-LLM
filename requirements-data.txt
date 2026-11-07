@@ -1,1 +1,2 @@
 beautifulsoup4==4.13.4
+pyarrow==20.0.0

@@ -73,7 +73,7 @@ def pack_split(sources, output, split, tokenizer, seen_ids, seen_hashes):
             for lang in LANGUAGES}
 
 
-def pack(sources, output, vocab_size, tokenizer_docs):
+def pack(sources, output, vocab_size, tokenizer_docs, tokenizer_from=None):
     if array("i").itemsize != 4 or sys.byteorder != "little":
         raise RuntimeError("Token streams require little-endian 32-bit integers")
     if output.exists():
@@ -84,7 +84,12 @@ def pack(sources, output, vocab_size, tokenizer_docs):
         staged.mkdir()
         paths = {split: [source / f"{split}.jsonl" for source in sources] for split in SPLITS}
         source_digests = {split: [digest(path) for path in items] for split, items in paths.items()}
-        tokenizer = train_tokenizer(tokenizer_sample(paths["train"], tokenizer_docs), vocab_size)
+        if tokenizer_from is None:
+            tokenizer = train_tokenizer(tokenizer_sample(paths["train"], tokenizer_docs), vocab_size)
+        else:
+            tokenizer = Tokenizer.from_file(str(tokenizer_from))
+            if tokenizer.token_to_id(EOS) is None:
+                raise ValueError("The supplied tokenizer is missing the end-of-document token")
         tokenizer_path = staged / "tokenizer.json"
         tokenizer.save(str(tokenizer_path))
         ids, hashes = set(), set()
@@ -94,7 +99,7 @@ def pack(sources, output, vocab_size, tokenizer_docs):
         manifest = {
             "format_version": 1,
             "tokenizer_sha256": digest(tokenizer_path),
-            "tokenizer_docs_per_language": tokenizer_docs,
+            "tokenizer_docs_per_language": tokenizer_docs if tokenizer_from is None else None,
             "source_sha256": source_digests,
             "splits": splits,
         }
@@ -140,10 +145,11 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--vocab-size", type=int, default=6144)
     parser.add_argument("--tokenizer-docs", type=int, default=10000)
+    parser.add_argument("--tokenizer-from", type=Path, help="Reuse an existing tokenizer JSON without retraining it")
     args = parser.parse_args()
     if args.vocab_size < 257 or args.tokenizer_docs < 1:
         parser.error("Vocabulary must be at least 257 and tokenizer document cap must be positive")
-    print(json.dumps(pack(args.source, args.output, args.vocab_size, args.tokenizer_docs), indent=2))
+    print(json.dumps(pack(args.source, args.output, args.vocab_size, args.tokenizer_docs, args.tokenizer_from), indent=2))
 
 
 if __name__ == "__main__":

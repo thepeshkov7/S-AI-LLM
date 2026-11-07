@@ -21,9 +21,29 @@ def routing_prompt(question, language, key):
     return f"Memory lookup ({language})\nKey: {label(key)}\nQuestion: {question}\nMatch:"
 
 
-def chat_prompt(question, language):
+def chat_prompt(question, language, history=()):
     language_name = "Russian" if language == "ru" else "English"
-    return format_instruction(f"Answer in {language_name}.\n{question}")
+    turns = [*history, (question, None)]
+    lines = []
+    for index, (user, assistant) in enumerate(turns):
+        if index == 0:
+            user = f"Answer in {language_name}.\n{user}"
+        line = format_instruction(user)
+        if assistant is not None:
+            line += f" {assistant}"
+        lines.append(line)
+    return "\n".join(lines)
+
+
+def chat_prompt_within_context(generator, question, language, history, max_new_tokens):
+    prompt = chat_prompt(question, language)
+    budget = generator.model.context - max_new_tokens
+    for count in range(1, len(history) + 1):
+        candidate = chat_prompt(question, language, history[-count:])
+        if len(generator.tokenizer.encode(candidate).ids) > budget:
+            break
+        prompt = candidate
+    return prompt
 
 
 @torch.inference_mode()

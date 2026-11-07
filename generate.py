@@ -61,7 +61,9 @@ class TextGenerator:
         metrics = checkpoint.get("metrics", {})
         chat_model = None
         if tokenizer is not None and metrics.get("bilingual_chat") is True:
-            chat_model = "S AI 0.5 Grounded" if isinstance(model, CopyLLM) else "S AI 0.4 Bilingual"
+            chat_model = metrics.get("chat_model")
+            if not isinstance(chat_model, str) or not chat_model.strip():
+                chat_model = "S AI 0.5 Grounded" if isinstance(model, CopyLLM) else "S AI 0.4 Bilingual"
         return cls(model.to(device).eval(), tokenizer, metrics.get("memory_routing") == 1, chat_model)
 
     @torch.inference_mode()

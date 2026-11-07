@@ -5,6 +5,15 @@ import { isTrustedMutation, noStoreJson } from "@/lib/http";
 export const runtime = "nodejs";
 
 type AccountMemory = { memory_key: string; value: string };
+type ChatTurn = { user: string; assistant: string };
+
+function isChatTurn(value: unknown): value is ChatTurn {
+  if (!value || typeof value !== "object" || Object.keys(value).length !== 2) return false;
+  const turn = value as Partial<ChatTurn>;
+  return [turn.user, turn.assistant].every(
+    (message) => typeof message === "string" && message.length <= 1000 && message.trim().length > 0,
+  );
+}
 
 function words(text: string) {
   return text.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
@@ -41,7 +50,7 @@ export async function POST(request: Request) {
   if (!isTrustedMutation(request)) {
     return noStoreJson({ error: "forbidden" }, { status: 403 });
   }
-  let payload: { question?: unknown; language?: unknown; useMemory?: unknown };
+  let payload: { question?: unknown; language?: unknown; useMemory?: unknown; history?: unknown };
   try {
     const decoded: unknown = await request.json();
     if (!decoded || typeof decoded !== "object" || Array.isArray(decoded)) {
@@ -53,8 +62,10 @@ export async function POST(request: Request) {
   }
   const question = typeof payload.question === "string" ? payload.question.trim() : "";
   const language = payload.language;
+  const history = payload.history;
   if (!question || question.length > 1000 || (language !== "ru" && language !== "en") ||
-      (payload.useMemory !== undefined && typeof payload.useMemory !== "boolean")) {
+      (payload.useMemory !== undefined && typeof payload.useMemory !== "boolean") ||
+      (history !== undefined && (!Array.isArray(history) || history.length > 4 || !history.every(isChatTurn)))) {
     return noStoreJson({ error: "invalid_request" }, { status: 400 });
   }
   try {
@@ -86,7 +97,7 @@ export async function POST(request: Request) {
     const response = await fetch(new URL("/chat", url), {
       method: "POST",
       headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ question, language }),
+      body: JSON.stringify({ question, language, history }),
       cache: "no-store",
       redirect: "error",
       signal: AbortSignal.any([request.signal, AbortSignal.timeout(15000)]),

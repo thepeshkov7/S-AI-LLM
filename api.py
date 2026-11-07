@@ -15,7 +15,7 @@ from fastapi.responses import JSONResponse, PlainTextResponse
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from generate import TextGenerator
-from memory_chat import MAX_SLOTS, SLOT_CONFIDENCE, chat_prompt, select_slot
+from memory_chat import MAX_SLOTS, SLOT_CONFIDENCE, chat_prompt_within_context, select_slot
 
 
 MODEL_NAME = "S AI 0.1 LLM"
@@ -149,10 +149,17 @@ def metrics(state: InferenceState = Depends(authorize)):
     )
 
 
+class ChatTurn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    user: str = Field(min_length=1, max_length=1000, pattern=r"\S")
+    assistant: str = Field(min_length=1, max_length=1000, pattern=r"\S")
+
+
 class ChatRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     question: str = Field(min_length=1, max_length=1000, pattern=r"\S")
     language: Literal["ru", "en"]
+    history: list[ChatTurn] = Field(default_factory=list, max_length=4)
     memory_keys: list[Annotated[str, Field(min_length=1, max_length=80)]] = Field(
         default_factory=list, max_length=MAX_SLOTS,
     )
@@ -207,7 +214,9 @@ def chat(req: ChatRequest, state: InferenceState = Depends(authorize)):
         if slot and confidence >= SLOT_CONFIDENCE:
             answer = {"memory_slot": slot - 1, "source": "account_memory"}
         else:
-            completion, _ = generator.complete(chat_prompt(req.question, req.language), max_new_tokens=64, top_k=1)
+            history = [(turn.user, turn.assistant) for turn in req.history]
+            prompt = chat_prompt_within_context(generator, req.question, req.language, history, max_new_tokens=64)
+            completion, _ = generator.complete(prompt, max_new_tokens=64, top_k=1)
             answer = {"completion": completion.strip(), "source": "model"}
     return JSONResponse(
         {"model": state.generator.chat_model, **answer, "language": req.language},
