@@ -20,7 +20,8 @@ def instruction_tensors(examples, generator):
     context = generator.model.context
     inputs, targets = [], []
     for example in examples:
-        prompt = tokens.encode(format_instruction(example.prompt)).ids
+        text = example.prompt if example.task == "followup" else format_instruction(example.prompt)
+        prompt = tokens.encode(text).ids
         response = tokens.encode(" " + example.answer).ids + [generator.eos]
         combined = prompt + response
         if len(combined) - 1 > context:

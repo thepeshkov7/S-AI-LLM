@@ -1,5 +1,6 @@
 """Train a randomly initialized S AI Transformer on disjoint JSONL document sets."""
 import argparse
+from contextlib import nullcontext
 from dataclasses import asdict
 import hashlib
 import json
@@ -69,16 +70,29 @@ def encode_documents(documents, tokenizer):
 
 
 class TrainingWindows:
-    def __init__(self, documents, context, seed):
+    def __init__(self, documents, context, seed, balance_languages=False):
         self.context = context
         self.generator = torch.Generator().manual_seed(seed)
-        self.documents = [ids for _, ids in documents if len(ids) > context]
-        if not self.documents:
-            raise ValueError("Training requires at least one document longer than the context")
-        self.ends = torch.tensor([len(ids) - context for ids in self.documents]).cumsum(0)
-        self.offsets = torch.cat([torch.zeros(1, dtype=torch.long), self.ends[:-1]])
+        self.balance_languages = balance_languages
+        if balance_languages:
+            self.samplers = [
+                TrainingWindows([(lang, ids) for lang, ids in documents if lang == language],
+                                context, seed + index + 1)
+                for index, language in enumerate(("ru", "en"))
+            ]
+        else:
+            self.documents = [ids for _, ids in documents if len(ids) > context]
+            if not self.documents:
+                raise ValueError("Training requires a document longer than the context in each sampling group")
+            self.ends = torch.tensor([len(ids) - context for ids in self.documents]).cumsum(0)
+            self.offsets = torch.cat([torch.zeros(1, dtype=torch.long), self.ends[:-1]])
 
     def batch(self, size, device):
+        if self.balance_languages:
+            if size < 2 or size % 2:
+                raise ValueError("Balanced batches require an even batch size")
+            russian, english = (sampler.batch(size // 2, device) for sampler in self.samplers)
+            return torch.cat([russian[0], english[0]]), torch.cat([russian[1], english[1]])
         positions = torch.randint(int(self.ends[-1]), (size,), generator=self.generator)
         indices = torch.searchsorted(self.ends, positions, right=True)
         starts = positions - self.offsets[indices]
@@ -148,6 +162,9 @@ def main():
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--threads", type=int, default=4)
     parser.add_argument("--device", choices=("auto", "cpu", "cuda"), default="auto")
+    parser.add_argument("--balance-languages", action="store_true")
+    parser.add_argument("--bf16", action="store_true", help="Use CUDA BF16 autocast during training")
+    parser.add_argument("--gradient-accumulation", type=int, default=1)
     parser.add_argument("--vocab-size", type=int, default=2048)
     parser.add_argument("--width", type=int, default=128)
     parser.add_argument("--heads", type=int, default=4)
@@ -159,6 +176,12 @@ def main():
     if not math.isfinite(args.learning_rate) or args.learning_rate <= 0:
         parser.error("Learning rate must be positive and finite")
     device = args.device if args.device != "auto" else ("cuda" if torch.cuda.is_available() else "cpu")
+    if args.gradient_accumulation < 1:
+        parser.error("--gradient-accumulation must be positive")
+    if args.balance_languages and args.batch_size % 2:
+        parser.error("Balanced batches require an even batch size")
+    if args.bf16 and (device != "cuda" or not torch.cuda.is_bf16_supported()):
+        parser.error("--bf16 requires a CUDA device with BF16 support")
     torch.set_num_threads(args.threads)
     torch.manual_seed(args.seed)
     started = monotonic()
@@ -168,7 +191,7 @@ def main():
     tokenizer = train_tokenizer(splits["train"], args.vocab_size)
     encoded = {name: encode_documents(docs, tokenizer) for name, docs in splits.items()}
     model = TinyLLM(tokenizer.get_vocab_size(), args.width, args.heads, args.layers, args.context).to(device)
-    train = TrainingWindows(encoded["train"], model.context, args.seed + 1)
+    train = TrainingWindows(encoded["train"], model.context, args.seed + 1, args.balance_languages)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate)
     parameter_count = sum(parameter.numel() for parameter in model.parameters())
     stats = {
@@ -176,6 +199,10 @@ def main():
             "sha256": hashlib.sha256(paths[name].read_bytes()).hexdigest(),
             "documents": len(docs),
             "tokens": sum(len(ids) for _, ids in encoded[name]),
+            "tokens_by_language": {
+                language: sum(len(ids) for lang, ids in encoded[name] if lang == language)
+                for language in ("ru", "en")
+            },
         }
         for name, docs in splits.items()
     }
@@ -187,10 +214,13 @@ def main():
     print(json.dumps({"step": 0, "validation": initial_validation}), flush=True)
     model.train()
     for step in range(1, args.steps + 1):
-        x, y = train.batch(args.batch_size, device)
         optimizer.zero_grad(set_to_none=True)
-        _, loss = model(x, y)
-        loss.backward()
+        for _ in range(args.gradient_accumulation):
+            x, y = train.batch(args.batch_size, device)
+            precision = torch.autocast("cuda", dtype=torch.bfloat16) if args.bf16 else nullcontext()
+            with precision:
+                _, loss = model(x, y)
+            (loss / args.gradient_accumulation).backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0, error_if_nonfinite=True)
         optimizer.step()
         if step % args.eval_every == 0 or step == args.steps:
@@ -216,7 +246,10 @@ def main():
         "eval_every": args.eval_every,
         "threads": args.threads,
         "torch": str(torch.__version__),
-        "tokens_processed": args.steps * args.batch_size * args.context,
+        "balance_languages": args.balance_languages,
+        "bf16": args.bf16,
+        "gradient_accumulation": args.gradient_accumulation,
+        "tokens_processed": args.steps * args.batch_size * args.context * args.gradient_accumulation,
         "data": stats,
         "initial_validation": initial_validation,
         "validation": best_validation,
