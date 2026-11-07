@@ -20,9 +20,10 @@ def instruction_tensors(examples, generator):
     context = generator.model.context
     inputs, targets = [], []
     for example in examples:
-        text = example.prompt if example.task == "followup" else format_instruction(example.prompt)
+        text = example.prompt if example.task in {"followup", "memory_route", "prefixed_chat"} else format_instruction(example.prompt)
         prompt = tokens.encode(text).ids
-        response = tokens.encode(" " + example.answer).ids + [generator.eos]
+        prefix = "" if example.task == "memory_route" else " "
+        response = tokens.encode(prefix + example.answer).ids + [generator.eos]
         combined = prompt + response
         if len(combined) - 1 > context:
             raise ValueError(f"Instruction exceeds context: {example.group} ({example.language})")

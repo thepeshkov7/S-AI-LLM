@@ -1,19 +1,21 @@
 """Private inference service for the S AI research checkpoint."""
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, contextmanager
 import hmac
 import logging
 import os
 from pathlib import Path
 from threading import Lock, Semaphore
 from time import monotonic
+from typing import Annotated, Literal
 
 import torch
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, PlainTextResponse
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from generate import TextGenerator
+from memory_chat import MAX_SLOTS, SLOT_CONFIDENCE, chat_prompt, select_slot
 
 
 MODEL_NAME = "S AI 0.1 LLM"
@@ -147,25 +149,41 @@ def metrics(state: InferenceState = Depends(authorize)):
     )
 
 
-@app.post("/generate")
-def generate(req: GenerateRequest, state: InferenceState = Depends(authorize)):
+class ChatRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    question: str = Field(min_length=1, max_length=1000, pattern=r"\S")
+    language: Literal["ru", "en"]
+    memory_keys: list[Annotated[str, Field(min_length=1, max_length=80)]] = Field(
+        default_factory=list, max_length=MAX_SLOTS,
+    )
+
+
+@contextmanager
+def inference(state):
     if state.generator is None:
         state.record("503")
         raise HTTPException(503, "Model checkpoint unavailable")
     state.acquire()
     started = monotonic()
     try:
-        completion, generated_tokens = state.generator.complete(
+        yield state.generator
+    except Exception:
+        state.record("500", monotonic() - started)
+        LOG.exception("S AI inference failed")
+        raise HTTPException(500, "Generation failed") from None
+    else:
+        state.record("200", monotonic() - started)
+    finally:
+        state.slots.release()
+
+
+@app.post("/generate")
+def generate(req: GenerateRequest, state: InferenceState = Depends(authorize)):
+    with inference(state) as generator:
+        completion, generated_tokens = generator.complete(
             req.prompt, req.max_new_tokens or req.max_new_bytes or 80,
             req.temperature, req.top_k, req.seed, req.max_new_bytes,
         )
-    except Exception:
-        state.record("500", monotonic() - started)
-        LOG.exception("S AI generation failed")
-        raise HTTPException(500, "Generation failed") from None
-    finally:
-        state.slots.release()
-    state.record("200", monotonic() - started)
     return JSONResponse(
         {
             "model": MODEL_NAME,
@@ -173,5 +191,23 @@ def generate(req: GenerateRequest, state: InferenceState = Depends(authorize)):
             "completion": completion,
             "generated_tokens": generated_tokens,
         },
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+@app.post("/chat")
+def chat(req: ChatRequest, state: InferenceState = Depends(authorize)):
+    if state.generator is None or not state.generator.memory_routing:
+        state.record("503")
+        raise HTTPException(503, "Memory chat checkpoint unavailable")
+    with inference(state) as generator:
+        slot, confidence = select_slot(generator, req.question, req.language, req.memory_keys)
+        if slot and confidence >= SLOT_CONFIDENCE:
+            answer = {"memory_slot": slot - 1, "source": "account_memory"}
+        else:
+            completion, _ = generator.complete(chat_prompt(req.question, req.language), max_new_tokens=64, top_k=1)
+            answer = {"completion": completion.strip(), "source": "model"}
+    return JSONResponse(
+        {"model": "S AI 0.2 Memory", **answer, "language": req.language},
         headers={"Cache-Control": "no-store"},
     )

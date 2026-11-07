@@ -72,3 +72,12 @@ The [Wikipedia snapshot](https://huggingface.co/datasets/wikimedia/wikipedia) pr
 The chat benchmark is a frozen 400-item local suite with 200 cases per language. Half are automatically scored and half have reference criteria for separate manual assessment. Its v1 SHA-256 is `4755f3b03c068c856f89617cf8a17fdf4e2b2b2129496132a56b9bd929fd69e0`. The evaluation script produces predictions for an offline blind comparison. It makes no external model requests.
 
 A future GPU candidate is width 384, 12 layers, six heads, a 24,000-token vocabulary and a 1,024-token context. The training command exposes optional CUDA BF16 and gradient accumulation. Before a full run, move the corpus to disk-backed token shards, add resumable training state, measure throughput and memory on the actual GPU, and agree on a cost cap. The CPU pilot uses a small in-memory corpus and saved inference checkpoints.
+
+## Bilingual memory experiment
+
+```bash
+python tune_memory.py --base runs/wiki-pilot/s_ai_0_2_pilot_instruct.pt \
+  --output runs/memory/s_ai_0_2_memory.pt
+```
+
+This warm-started CPU experiment teaches the Transformer to match questions against account-memory keys and measures both recall and abstention. A separate path generates short replies in the requested language. See [DEPLOYMENT.md](DEPLOYMENT.md#experimental-bilingual-memory-route) for the private API and the S AI server adapter.
