@@ -17,22 +17,28 @@ from pretrain_packed import learning_rate
 from train import save_checkpoint
 
 
+def dialogue_example(row, generator):
+    language = row["language"]
+    turns = row["turns"]
+    if len(turns) not in (2, 4) or language not in LANGUAGES:
+        raise ValueError(f'Invalid dialogue: {row["id"]}')
+    prompt = chat_prompt(turns[0], language)
+    if len(turns) == 4:
+        prompt += f" {turns[1]}\n" + format_instruction(turns[2])
+    answer = turns[-1]
+    length = len(generator.tokenizer.encode(prompt).ids) + len(generator.tokenizer.encode(" " + answer).ids)
+    if length <= generator.model.context:
+        return Example(row["id"], "prefixed_chat", language, prompt, answer)
+    return None
+
+
 def examples(path, generator):
     rows = {lang: [] for lang in LANGUAGES}
     with path.open(encoding="utf-8") as source:
         for line in source:
-            row = json.loads(line)
-            language = row["language"]
-            turns = row["turns"]
-            if len(turns) not in (2, 4) or language not in LANGUAGES:
-                raise ValueError(f"Invalid dialogue in {path}")
-            prompt = chat_prompt(turns[0], language)
-            if len(turns) == 4:
-                prompt += f" {turns[1]}\n" + format_instruction(turns[2])
-            answer = turns[-1]
-            length = len(generator.tokenizer.encode(prompt).ids) + len(generator.tokenizer.encode(" " + answer).ids)
-            if length <= generator.model.context:
-                rows[language].append(Example(row["id"], "prefixed_chat", language, prompt, answer))
+            example = dialogue_example(json.loads(line), generator)
+            if example is not None:
+                rows[example.language].append(example)
     if not all(rows.values()):
         raise ValueError(f"No fitting examples for one language in {path}")
     return rows
@@ -46,6 +52,7 @@ def trim_batch(x, y):
 @torch.inference_mode()
 def validate(model, tensors, batch_size):
     model.eval()
+    device = model.token.weight.device
     result = {}
     for lang, (inputs, targets) in tensors.items():
         total = 0.0
@@ -53,7 +60,7 @@ def validate(model, tensors, batch_size):
         for start in range(0, len(inputs), batch_size):
             x, y = trim_batch(inputs[start:start + batch_size], targets[start:start + batch_size])
             tokens = int((y != -100).sum())
-            total += model.answer_loss(x, y).item() * tokens
+            total += model.answer_loss(x.to(device), y.to(device)).item() * tokens
             count += tokens
         result[lang] = {"loss": total / count, "answer_tokens": count}
     result["mean_loss"] = sum(item["loss"] for item in result.values()) / len(result)

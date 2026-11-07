@@ -197,9 +197,11 @@ def generate(req: GenerateRequest, state: InferenceState = Depends(authorize)):
 
 @app.post("/chat")
 def chat(req: ChatRequest, state: InferenceState = Depends(authorize)):
-    if state.generator is None or not state.generator.memory_routing:
+    if state.generator is None or state.generator.chat_model is None:
         state.record("503")
-        raise HTTPException(503, "Memory chat checkpoint unavailable")
+        raise HTTPException(503, "Chat checkpoint unavailable")
+    if req.memory_keys and not state.generator.memory_routing:
+        raise HTTPException(422, "Memory keys require a routing checkpoint")
     with inference(state) as generator:
         slot, confidence = select_slot(generator, req.question, req.language, req.memory_keys)
         if slot and confidence >= SLOT_CONFIDENCE:
@@ -208,6 +210,6 @@ def chat(req: ChatRequest, state: InferenceState = Depends(authorize)):
             completion, _ = generator.complete(chat_prompt(req.question, req.language), max_new_tokens=64, top_k=1)
             answer = {"completion": completion.strip(), "source": "model"}
     return JSONResponse(
-        {"model": "S AI 0.2 Memory", **answer, "language": req.language},
+        {"model": state.generator.chat_model, **answer, "language": req.language},
         headers={"Cache-Control": "no-store"},
     )

@@ -159,6 +159,39 @@ python evaluate_chat.py --checkpoint runs/wide/dialogue.pt \
   --benchmark runs/wide/combined.jsonl --language-prefix --output runs/wide/chat-dialogue.json
 ```
 
+### Bilingual chat curriculum
+
+Start from the 0.3 Dialogue checkpoint to retain its tokenizer and bilingual
+pretraining. Mix reviewed dialogue and Tatoeba examples with authored everyday
+questions and reproducible tasks covering arithmetic, fact extraction, order,
+follow-ups and JSON. Each batch is balanced between Russian and English.
+The trainer selects weights by validation loss averaged across task families
+and languages. Use the separate generation benchmarks to assess chat quality.
+
+```bash
+python prepare_bilingual.py --dialogues corpus/oasst2-clean \
+  --translations corpus/translation-pilot --output corpus/bilingual \
+  --exclude runs/wide/combined.jsonl --exclude runs/wide/chat-eval-v1.jsonl
+python tune_bilingual.py --base runs/wide/dialogue.pt \
+  --curriculum corpus/bilingual --output runs/bilingual/s_ai_0_4_bilingual.pt
+python evaluate_chat.py --checkpoint runs/bilingual/s_ai_0_4_bilingual.pt \
+  --benchmark runs/wide/combined.jsonl --language-prefix --output runs/bilingual/chat.json
+python evaluate_chat.py --checkpoint runs/bilingual/s_ai_0_4_bilingual.pt \
+  --benchmark data/bilingual-probe-v3.jsonl --language-prefix --max-new-tokens 64 \
+  --output runs/bilingual/probe.json
+```
+
+The new probe includes everyday paraphrases, novel tasks, language changes and
+follow-ups. Score its answers against the attached rubrics. The research
+checkpoint enables text generation through the private `/chat` route. Account
+memory recall remains in the app's authenticated server adapter.
+
+The 2,400-step CPU run improved the frozen automatic benchmark from 0/200
+to 48/200, with 24/100 in each language. It answered all 40 time updates
+correctly. Manual review found 3/30 correct on the original probe and 0/28 on
+the new probe. The validation loss for everyday questions and reviewed dialogue
+increased in both languages. Keep this checkpoint on a local test service.
+
 ### GPU throughput measurement
 
 Prepare a larger corpus with a 24,000-token vocabulary before measuring the

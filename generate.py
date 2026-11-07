@@ -29,10 +29,11 @@ def format_instruction(instruction):
 
 
 class TextGenerator:
-    def __init__(self, model, tokenizer=None, memory_routing=False):
+    def __init__(self, model, tokenizer=None, memory_routing=False, chat_model=None):
         self.model = model
         self.tokenizer = tokenizer
         self.memory_routing = memory_routing
+        self.chat_model = chat_model or ("S AI 0.2 Memory" if memory_routing else None)
         self.eos = tokenizer.token_to_id("<|end_of_document|>") if tokenizer else None
 
     @classmethod
@@ -53,7 +54,9 @@ class TextGenerator:
         else:
             raise ValueError(f"Unsupported checkpoint version: {version}")
         model.load_state_dict(state, strict=True)
-        return cls(model.to(device).eval(), tokenizer, checkpoint.get("metrics", {}).get("memory_routing") == 1)
+        metrics = checkpoint.get("metrics", {})
+        chat_model = "S AI 0.4 Bilingual" if tokenizer is not None and metrics.get("bilingual_chat") is True else None
+        return cls(model.to(device).eval(), tokenizer, metrics.get("memory_routing") == 1, chat_model)
 
     @torch.inference_mode()
     def complete(self, prompt, max_new_tokens=80, temperature=0.85, top_k=40, seed=None, max_bytes=None):
