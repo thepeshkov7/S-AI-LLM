@@ -14,7 +14,11 @@ from urllib.request import Request, urlopen
 
 DATASET = "wikimedia/wikipedia"
 SNAPSHOT = "20231101"
-LICENSE = "https://creativecommons.org/licenses/by-sa/4.0/"
+DATASET_LICENSES = (
+    "https://creativecommons.org/licenses/by-sa/3.0/",
+    "https://www.gnu.org/licenses/fdl.html",
+)
+SOURCE_TERMS = "https://foundation.wikimedia.org/wiki/Terms_of_Use"
 OFFSETS = {
     "ru": (10100, 32000, 179200, 301400, 580000, 742900),
     "en": (44100, 132000, 278000, 421400, 580100, 742900),
@@ -86,7 +90,7 @@ def prepare(output, max_chars, seed):
             selected[language].append((
                 {"id": doc_id, "language": language, "text": text},
                 {"id": doc_id, "url": row["url"], "title": row["title"],
-                 "language": language, "sha256": digest, "license": LICENSE},
+                 "language": language, "sha256": digest},
             ))
     assignments = {split: [] for split in ("train", "validation", "test")}
     rng = random.Random(seed)
@@ -98,7 +102,11 @@ def prepare(output, max_chars, seed):
         assignments["validation"].extend(items[:12])
         assignments["test"].extend(items[12:24])
         assignments["train"].extend(items[24:24 + train_count])
-    manifest = {"dataset": DATASET, "snapshot": SNAPSHOT, "seed": seed, "documents": [], "splits": {}}
+    manifest = {
+        "dataset": DATASET, "snapshot": SNAPSHOT, "seed": seed,
+        "dataset_license_metadata": DATASET_LICENSES, "article_source_terms": SOURCE_TERMS,
+        "documents": [], "splits": {},
+    }
     for split, items in assignments.items():
         rng.shuffle(items)
         content = "".join(json.dumps(doc, ensure_ascii=False) + "\n" for doc, _ in items).encode()
