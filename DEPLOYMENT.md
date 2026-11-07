@@ -89,7 +89,7 @@ On staging, verify HTTPS and authenticated responses, alert on readiness failure
 
 ## Experimental bilingual memory route
 
-The private `POST /chat` endpoint uses the same service authentication as `/generate`. It accepts `question` and `language` (`ru` or `en`) and returns `source: "model"` and a generated `completion`. With the experimental `S AI 0.2 Memory` checkpoint, callers may pass up to six `memory_keys`. A confident selection returns `source: "account_memory"` and a zero-based `memory_slot`. The `S AI 0.4 Bilingual` checkpoint supports text generation and returns 422 when callers supply memory keys.
+The private `POST /chat` endpoint uses the same service authentication as `/generate`. It accepts `question` and `language` (`ru` or `en`) and returns `source: "model"` and a generated `completion`. With the experimental `S AI 0.2 Memory` checkpoint, callers may pass up to six `memory_keys`. A confident selection returns `source: "account_memory"` and a zero-based `memory_slot`. The `S AI 0.4 Bilingual` and `S AI 0.5 Grounded` checkpoints support text generation and return 422 when callers supply memory keys.
 
 `integration/sai-memory-route.ts` is a Next.js route for the S AI application. It uses the app's existing session validation and Supabase client with the current account identity. It reads saved memories only when `useMemory` is explicitly enabled and the question matches a supported Russian or English recall intent. The app server returns the unique saved value, or a structured missing/ambiguous error. Its ordinary chat branch sends only the question and language to inference. The optional neural selector on the private API is for experiments. Keep recalled values rendered as untrusted plain text.
 

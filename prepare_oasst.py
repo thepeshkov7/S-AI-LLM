@@ -27,7 +27,7 @@ def normalized(text):
     return " ".join(re.findall(r"\w+", unicodedata.normalize("NFC", text).casefold()))
 
 
-def clean_text(row):
+def clean_text(row, *, answer_ranks=(0,), max_answer_chars=800):
     if (row["lang"] not in LANGUAGES or row["tree_state"] != "ready_for_export"
             or row["deleted"] or row["review_result"] is not True or row["synthetic"]):
         return None
@@ -40,11 +40,11 @@ def clean_text(row):
     if any(detox.get(name, 0) > 0.25 for name in ("toxicity", "threat", "sexual_explicit")):
         return None
     is_answer = row["role"] == "assistant"
-    if is_answer and (row["rank"] != 0 or labels.get("quality", {}).get("value", 0) < 0.45
+    if is_answer and (row["rank"] not in answer_ranks or labels.get("quality", {}).get("value", 0) < 0.45
                       or labels.get("fails_task", {}).get("value", 0) > 0):
         return None
     text = unicodedata.normalize("NFC", row["text"]).strip()
-    if not (8 <= len(text) <= (800 if is_answer else 500)) or EOS in text or UNSUITABLE.search(text):
+    if not (8 <= len(text) <= (max_answer_chars if is_answer else 500)) or EOS in text or UNSUITABLE.search(text):
         return None
     return text
 

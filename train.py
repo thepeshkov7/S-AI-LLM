@@ -143,16 +143,16 @@ def atomic_torch_save(payload, path):
 
 
 def save_checkpoint(path, model, tokenizer, metrics):
-    atomic_torch_save(
-        {
-            "format_version": 1,
-            "config": asdict(model.config),
-            "tokenizer": tokenizer.to_str(),
-            "model": model.state_dict(),
-            "metrics": metrics,
-        },
-        path,
-    )
+    payload = {
+        "format_version": 1,
+        "config": asdict(model.config),
+        "tokenizer": tokenizer.to_str(),
+        "model": model.state_dict(),
+        "metrics": metrics,
+    }
+    if model.architecture is not None:
+        payload["architecture"] = model.architecture
+    atomic_torch_save(payload, path)
 
 
 def main():

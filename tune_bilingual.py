@@ -2,6 +2,7 @@
 
 import argparse
 from collections import defaultdict
+from dataclasses import asdict
 import json
 import math
 from pathlib import Path
@@ -13,6 +14,7 @@ from filelock import FileLock, Timeout
 
 from finetune import instruction_tensors
 from generate import TextGenerator
+from model import CopyLLM
 from packed_corpus import LANGUAGES, SPLITS, digest
 from prepare_bilingual import source_rows
 from pretrain_packed import learning_rate
@@ -41,15 +43,17 @@ def load_split(folder, split, manifest, generator):
     return buckets
 
 
-def measure(model, tensors, batch_size):
+def measure(model, tensors, batch_size, selection_weights=None):
     result = validate(model, tensors, batch_size)
     result.pop("mean_loss")
     per_language = {}
+    selection_weights = selection_weights or {}
     for lang in LANGUAGES:
-        losses = [metrics["loss"] for (language, _), metrics in result.items() if language == lang]
-        if not losses:
+        weighted = [(metrics["loss"], selection_weights.get(family, 1))
+                    for (language, family), metrics in result.items() if language == lang]
+        if not weighted:
             raise ValueError(f"No validation categories for {lang}")
-        per_language[lang] = sum(losses) / len(losses)
+        per_language[lang] = sum(loss * weight for loss, weight in weighted) / sum(weight for _, weight in weighted)
     return {"mean_loss": sum(per_language.values()) / len(per_language), "by_language": per_language,
             "by_family": {f"{lang}:{family}": item for (lang, family), item in result.items()}}
 
@@ -60,31 +64,45 @@ def train(args):
     random_source = random.Random(382)
     sampler = torch.Generator().manual_seed(383)
     generator = TextGenerator.load(args.base, args.device)
+    if generator.tokenizer is None:
+        raise ValueError("Bilingual tuning requires a BPE checkpoint")
+    if args.with_copy_head and not isinstance(generator.model, CopyLLM):
+        model = CopyLLM(**asdict(generator.model.config))
+        initial_state = model.state_dict()
+        initial_state.update(generator.model.state_dict())
+        model.load_state_dict(initial_state)
+        model.set_copy_aliases(generator.tokenizer)
+        generator.model = model.to(args.device)
     model = generator.model
     manifest_path = args.curriculum / "manifest.json"
     manifest = json.loads(manifest_path.read_bytes())
+    weights = manifest.get("sampling_weights", WEIGHTS)
+    selection = manifest.get("selection_weights", {})
+    if not weights or any(type(weight) is not int or weight < 1 for weight in [*weights.values(), *selection.values()]):
+        raise ValueError("Curriculum weights must be positive integers")
     examples = {split: load_split(args.curriculum, split, manifest, generator) for split in SPLITS}
-    if any((lang, family) not in examples["train"] for lang in LANGUAGES for family in WEIGHTS):
+    if any((lang, family) not in examples["train"] for lang in LANGUAGES for family in weights):
         raise ValueError("Training requires examples in every language and family")
     tensors = {split: {bucket: instruction_tensors(rows, generator) for bucket, rows in group.items()}
                for split, group in examples.items()}
     del examples
     counts = {split: {f"{lang}:{family}": len(inputs) for (lang, family), (inputs, _) in group.items()}
               for split, group in tensors.items()}
-    baseline = measure(model, tensors["validation"], args.batch_size)
+    baseline = measure(model, tensors["validation"], args.batch_size, selection)
     best, best_step = baseline, 0
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate)
     stats = {
         "base_sha256": digest(args.base), "curriculum_sha256": digest(manifest_path),
         "steps": args.steps, "batch_size": args.batch_size, "learning_rate": args.learning_rate,
         "device": args.device, "threads": args.threads, "eval_every": args.eval_every,
-        "sampling_weights": WEIGHTS, "counts_that_fit": counts, "validation_before": baseline,
+        "sampling_weights": weights, "selection_weights": selection, "architecture": model.architecture,
+        "counts_that_fit": counts, "validation_before": baseline,
     }
     print(json.dumps({"step": 0, **stats}), flush=True)
     started = monotonic()
     for step in range(1, args.steps + 1):
         model.train()
-        family = random_source.choices(tuple(WEIGHTS), weights=tuple(WEIGHTS.values()))[0]
+        family = random_source.choices(tuple(weights), weights=tuple(weights.values()))[0]
         batches = []
         for lang in LANGUAGES:
             inputs, targets = tensors["train"][(lang, family)]
@@ -100,7 +118,7 @@ def train(args):
         optimizer.step()
         if step % args.eval_every and step != args.steps:
             continue
-        metrics = measure(model, tensors["validation"], args.batch_size)
+        metrics = measure(model, tensors["validation"], args.batch_size, selection)
         elapsed = round(monotonic() - started, 2)
         if metrics["mean_loss"] < best["mean_loss"]:
             best, best_step = metrics, step
@@ -112,7 +130,7 @@ def train(args):
     if best_step == 0:
         raise RuntimeError("No checkpoint improved the balanced validation loss")
     model.load_state_dict(torch.load(args.output, map_location="cpu", weights_only=True)["model"])
-    test = measure(model, tensors["test"], args.batch_size)
+    test = measure(model, tensors["test"], args.batch_size, selection)
     print(json.dumps({"finished": True, "selected_step": best_step, "test": test,
                       "seconds": round(monotonic() - started, 2)}), flush=True)
 
@@ -128,6 +146,7 @@ def main():
     parser.add_argument("--learning-rate", type=float, default=0.00075)
     parser.add_argument("--threads", type=int, default=6)
     parser.add_argument("--device", choices=("cpu", "cuda"), default="cpu")
+    parser.add_argument("--with-copy-head", action="store_true")
     args = parser.parse_args()
     if min(args.steps, args.eval_every, args.threads, args.batch_size) < 1 or args.batch_size % 2:
         parser.error("Use positive limits and an even batch size")

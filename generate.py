@@ -6,7 +6,7 @@ from pathlib import Path
 import torch
 from tokenizers import Tokenizer
 
-from model import TinyLLM
+from model import CopyLLM, TinyLLM
 
 
 LEGACY_ATTENTION_KEYS = {
@@ -42,7 +42,11 @@ class TextGenerator:
         state = checkpoint["model"]
         version = checkpoint.get("format_version")
         if version == 1:
-            model = TinyLLM(**checkpoint["config"])
+            architecture = checkpoint.get("architecture")
+            architectures = {None: TinyLLM, CopyLLM.architecture: CopyLLM}
+            if architecture not in architectures:
+                raise ValueError(f"Unsupported checkpoint architecture: {architecture}")
+            model = architectures[architecture](**checkpoint["config"])
             tokenizer = Tokenizer.from_str(checkpoint["tokenizer"])
             if tokenizer.get_vocab_size() != model.config.vocab_size or tokenizer.token_to_id("<|end_of_document|>") is None:
                 raise ValueError("Checkpoint tokenizer does not match the model")
@@ -55,7 +59,9 @@ class TextGenerator:
             raise ValueError(f"Unsupported checkpoint version: {version}")
         model.load_state_dict(state, strict=True)
         metrics = checkpoint.get("metrics", {})
-        chat_model = "S AI 0.4 Bilingual" if tokenizer is not None and metrics.get("bilingual_chat") is True else None
+        chat_model = None
+        if tokenizer is not None and metrics.get("bilingual_chat") is True:
+            chat_model = "S AI 0.5 Grounded" if isinstance(model, CopyLLM) else "S AI 0.4 Bilingual"
         return cls(model.to(device).eval(), tokenizer, metrics.get("memory_routing") == 1, chat_model)
 
     @torch.inference_mode()
@@ -68,8 +74,8 @@ class TextGenerator:
         output = []
         for _ in range(max_new_tokens):
             recent = torch.tensor([ids[-self.model.context:]], device=device, dtype=torch.long)
-            logits, _ = self.model(recent)
-            values, indices = (logits[0, -1] / temperature).topk(min(top_k, logits.size(-1)))
+            scores = self.model.next_scores(recent)[0]
+            values, indices = (scores / temperature).topk(min(top_k, scores.size(-1)))
             selected = torch.multinomial(values.softmax(dim=0), 1, generator=generator)
             token = indices[selected].item()
             if token == self.eos:

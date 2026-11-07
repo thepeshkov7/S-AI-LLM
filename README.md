@@ -192,6 +192,61 @@ correctly. Manual review found 3/30 correct on the original probe and 0/28 on
 the new probe. The validation loss for everyday questions and reviewed dialogue
 increased in both languages. Keep this checkpoint on a local test service.
 
+### Bilingual copying and dialogue expansion
+
+The next stage continues from the bilingual checkpoint. Its copy head learns
+three modes for each output token. It can generate from the vocabulary, copy a
+visible token, or copy the token with its leading space adjusted. This uses the
+same vocabulary and causal attention as the previous checkpoint. The private
+chat route loads both architectures.
+
+The expanded corpus keeps the earlier examples for replay and adds reviewed
+dialogues, everyday and language-switch requests, and variations of arithmetic,
+fact extraction, ordering, JSON and conversational context. The old benchmarks
+are excluded by normalized user turn. The training validation objective weights
+everyday dialogue more heavily. The original evaluations and the new transfer
+probe use greedy decoding on the selected checkpoint.
+
+```bash
+python prepare_grounded.py --previous corpus/bilingual \
+  --oasst corpus/source/oasst2.messages.jsonl.gz --base runs/bilingual/s_ai_0_4_bilingual.pt \
+  --exclude runs/wide/combined.jsonl --exclude runs/wide/chat-eval-v1.jsonl \
+  --exclude data/bilingual-probe-v3.jsonl --output corpus/grounded
+python tune_bilingual.py --with-copy-head --base runs/bilingual/s_ai_0_4_bilingual.pt \
+  --curriculum corpus/grounded --output runs/grounded/s_ai_0_5_grounded.pt \
+  --steps 3200 --batch-size 12 --eval-every 400 --learning-rate 0.00055
+python evaluate_chat.py --checkpoint runs/grounded/s_ai_0_5_grounded.pt \
+  --benchmark runs/wide/combined.jsonl --language-prefix --output runs/grounded/chat-v2.json
+python evaluate_chat.py --checkpoint runs/grounded/s_ai_0_5_grounded.pt \
+  --benchmark data/bilingual-probe-v3.jsonl --language-prefix --max-new-tokens 64 \
+  --output runs/grounded/probe-v3.json
+python evaluate_chat.py --checkpoint runs/grounded/s_ai_0_5_grounded.pt \
+  --benchmark data/grounded-probe-v4.jsonl --language-prefix --max-new-tokens 64 \
+  --output runs/grounded/probe-v4.json
+```
+
+An offline decoder experiment trains a small readout on the frozen model. It
+selects entire spans of source text for a requested JSON object with `title`
+and `time` keys. In arithmetic mode the readout classifies the operation and
+code computes the result for two supported integers. Use `--typed-only` to
+keep autoregressive generation for all other cases. Save and compare the
+decoder results separately from the direct model outputs.
+
+```bash
+python span_chat.py train --with-arithmetic --base runs/grounded/s_ai_0_5_grounded.pt \
+  --curriculum corpus/grounded --output runs/grounded/typed_head.pt --steps 1200 --threads 5
+python span_chat.py score --typed-only --base runs/grounded/s_ai_0_5_grounded.pt \
+  --head runs/grounded/typed_head.pt --benchmark runs/wide/combined.jsonl \
+  --output runs/grounded/chat-v2-typed.json
+```
+
+Direct generation scored 26/100 in Russian and 27/100 in English on the frozen
+automatic test. The offline decoder increased those scores to 51/100 and
+56/100, including 40/40 JSON and 14/40 arithmetic cases across both languages.
+The new transfer probe scored 1/18 with the decoder. Manual review found one
+correct answer per language out of 15 on the original probe and 0/14 per
+language on the new probe. The six release targets remain unmet.
+
 ### GPU throughput measurement
 
 Prepare a larger corpus with a 24,000-token vocabulary before measuring the

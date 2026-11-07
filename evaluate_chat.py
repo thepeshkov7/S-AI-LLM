@@ -49,8 +49,7 @@ def completions(generator, prompts, max_new_tokens, batch_size):
                 [row + [generator.eos] * (width - len(row)) for row in ids], device=device,
             )
             last = torch.tensor([len(row) - 1 for row in ids], device=device)
-            logits, _ = model(inputs)
-            next_ids = logits[torch.arange(len(active), device=device), last].argmax(dim=-1).tolist()
+            next_ids = model.next_scores(inputs, last).argmax(dim=-1).tolist()
             remaining = []
             for i, token in zip(active, next_ids):
                 if token != generator.eos:
@@ -72,7 +71,8 @@ def case_prompt(case, language_prefix):
     return chat_prompt(prompt, language) if language_prefix else format_instruction(prompt)
 
 
-def evaluate(checkpoint, benchmark, output, max_new_tokens=48, batch_size=16, threads=4, language_prefix=False):
+def evaluate(checkpoint, benchmark, output, max_new_tokens=48, batch_size=16, threads=4,
+             language_prefix=False, completion_function=completions):
     torch.set_num_threads(threads)
     raw = benchmark.read_bytes()
     cases = [json.loads(line) for line in raw.splitlines() if line]
@@ -80,7 +80,7 @@ def evaluate(checkpoint, benchmark, output, max_new_tokens=48, batch_size=16, th
     prompts = [case_prompt(case, language_prefix) for case in cases]
     tallies = defaultdict(lambda: {"correct": 0, "total": 0})
     predictions = []
-    responses = completions(generator, prompts, max_new_tokens, batch_size)
+    responses = completion_function(generator, prompts, max_new_tokens, batch_size)
     for case, response in zip(cases, responses, strict=True):
         passed = score_answer(case["score"], response, case["reference"])
         predictions.append({**case, "response": response, "passed": passed})
