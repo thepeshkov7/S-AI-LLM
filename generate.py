@@ -1,20 +1,104 @@
+"""Load a local checkpoint and sample its autoregressive text continuation."""
 import argparse
+import math
+from pathlib import Path
+
 import torch
+from tokenizers import Tokenizer
+
 from model import TinyLLM
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--prompt", default="Привет")
-parser.add_argument("--max-new-bytes", type=int, default=120)
-args = parser.parse_args()
-checkpoint = torch.load("s_ai_0_1.pt", map_location="cpu", weights_only=True)
-model = TinyLLM(context=checkpoint["context"])
-model.load_state_dict(checkpoint["model"])
-model.eval()
-ids = list(args.prompt.encode("utf-8"))
-with torch.no_grad():
-    for _ in range(args.max_new_bytes):
-        x = torch.tensor([ids[-model.context:]], dtype=torch.long)
-        logits, _ = model(x)
-        probs = torch.softmax(logits[0, -1] / 0.9, dim=-1)
-        ids.append(int(torch.multinomial(probs, 1).item()))
-print(bytes(ids).decode("utf-8", errors="replace"))
+
+LEGACY_ATTENTION_KEYS = {
+    "attn.in_proj_weight": "qkv.weight",
+    "attn.in_proj_bias": "qkv.bias",
+    "attn.out_proj.weight": "proj.weight",
+    "attn.out_proj.bias": "proj.bias",
+}
+
+
+def checkpoint_key(key):
+    block, attention, parameter = key.partition(".attn.")
+    if attention:
+        return block + "." + LEGACY_ATTENTION_KEYS["attn." + parameter]
+    return key
+
+
+class TextGenerator:
+    def __init__(self, model, tokenizer=None):
+        self.model = model
+        self.tokenizer = tokenizer
+        self.eos = tokenizer.token_to_id("<|end_of_document|>") if tokenizer else None
+
+    @classmethod
+    def load(cls, path, device="cpu"):
+        checkpoint = torch.load(path, map_location="cpu", weights_only=True)
+        state = checkpoint["model"]
+        version = checkpoint.get("format_version")
+        if version == 1:
+            model = TinyLLM(**checkpoint["config"])
+            tokenizer = Tokenizer.from_str(checkpoint["tokenizer"])
+            if tokenizer.get_vocab_size() != model.config.vocab_size or tokenizer.token_to_id("<|end_of_document|>") is None:
+                raise ValueError("Checkpoint tokenizer does not match the model")
+        elif version is None:
+            # Convert the original MultiheadAttention names to the same QKV/projection layout.
+            model = TinyLLM(context=checkpoint["context"])
+            tokenizer = None
+            state = {checkpoint_key(key): value for key, value in state.items()}
+        else:
+            raise ValueError(f"Unsupported checkpoint version: {version}")
+        model.load_state_dict(state, strict=True)
+        return cls(model.to(device).eval(), tokenizer)
+
+    @torch.inference_mode()
+    def complete(self, prompt, max_new_tokens=80, temperature=0.85, top_k=40, seed=None, max_bytes=None):
+        if not prompt or max_new_tokens < 1 or top_k < 1 or not math.isfinite(temperature) or temperature <= 0:
+            raise ValueError("Invalid generation parameters")
+        ids = self.tokenizer.encode(prompt).ids if self.tokenizer else list(prompt.encode("utf-8"))
+        device = self.model.token.weight.device
+        generator = torch.Generator(device=device).manual_seed(seed) if seed is not None else None
+        output = []
+        for _ in range(max_new_tokens):
+            recent = torch.tensor([ids[-self.model.context:]], device=device, dtype=torch.long)
+            logits, _ = self.model(recent)
+            values, indices = (logits[0, -1] / temperature).topk(min(top_k, logits.size(-1)))
+            selected = torch.multinomial(values.softmax(dim=0), 1, generator=generator)
+            token = indices[selected].item()
+            if token == self.eos:
+                break
+            ids.append(token)
+            output.append(token)
+        if self.tokenizer:
+            completion = self.tokenizer.decode(output).rstrip("\ufffd")
+        else:
+            completion = bytes(output).decode("utf-8", errors="replace")
+        if max_bytes is not None:
+            completion = completion.encode("utf-8")[:max_bytes].decode("utf-8", errors="ignore")
+        return completion, len(output)
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--checkpoint", type=Path, default=Path("s_ai_0_1.pt"))
+    parser.add_argument("--prompt", default="Привет")
+    length = parser.add_mutually_exclusive_group()
+    length.add_argument("--max-new-tokens", type=int)
+    length.add_argument("--max-new-bytes", type=int)
+    parser.add_argument("--seed", type=int)
+    parser.add_argument("--temperature", type=float, default=0.85)
+    parser.add_argument("--top-k", type=int, default=40)
+    parser.add_argument("--threads", type=int, default=2)
+    args = parser.parse_args()
+    limit = args.max_new_bytes if args.max_new_bytes is not None else args.max_new_tokens
+    if args.threads < 1 or (limit is not None and limit < 1):
+        parser.error("Threads and output limits must be positive")
+    torch.set_num_threads(args.threads)
+    generator = TextGenerator.load(args.checkpoint)
+    completion, _ = generator.complete(
+        args.prompt, limit or 80, args.temperature, args.top_k, args.seed, args.max_new_bytes,
+    )
+    print(args.prompt + completion)
+
+
+if __name__ == "__main__":
+    main()

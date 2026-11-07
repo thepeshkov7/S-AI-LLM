@@ -1,0 +1,137 @@
+[
+  {
+    "id": "en-11",
+    "language": "en",
+    "split": "train",
+    "url": "https://www.gutenberg.org/cache/epub/11/pg11.txt",
+    "text_sha256": "dbba12a8b14c02e6b1425d8fd9c087b020a9651f83d4a8a4aad9d94bceb90b26",
+    "title": "Alice’s Adventures in Wonderland",
+    "author": "Lewis Carroll"
+  },
+  {
+    "id": "en-43",
+    "language": "en",
+    "split": "train",
+    "url": "https://www.gutenberg.org/cache/epub/43/pg43.txt",
+    "text_sha256": "426f7fba3ebe5cb5fbc25435cde413cb120046bfe263194e409ba6d7377256d3",
+    "title": "The Strange Case of Dr. Jekyll and Mr. Hyde",
+    "author": "Robert Louis Stevenson"
+  },
+  {
+    "id": "en-46",
+    "language": "en",
+    "split": "train",
+    "url": "https://www.gutenberg.org/cache/epub/46/pg46.txt",
+    "text_sha256": "9cff3bab8d5855777313cba4465cf987fd176f0fc2cbd0c1fbaf3bc935c01ca9",
+    "title": "A Christmas Carol",
+    "author": "Charles Dickens"
+  },
+  {
+    "id": "en-55",
+    "language": "en",
+    "split": "train",
+    "url": "https://www.gutenberg.org/cache/epub/55/pg55.txt",
+    "text_sha256": "b4c7efacbf84f506358e35aceb32c8c3ea1ab42d135f66be2ed1b394c7206420",
+    "title": "The Wonderful Wizard of Oz",
+    "author": "L. Frank Baum"
+  },
+  {
+    "id": "en-84",
+    "language": "en",
+    "split": "train",
+    "url": "https://www.gutenberg.org/cache/epub/84/pg84.txt",
+    "text_sha256": "fc6d22c9ddbc2b8dad663d1d91fd38f29e97f424ba1bed08e68f089e0f38928d",
+    "title": "Frankenstein",
+    "author": "Mary Wollstonecraft Shelley"
+  },
+  {
+    "id": "ru-1",
+    "language": "ru",
+    "split": "train",
+    "url": "https://ru.wikisource.org/w/index.php?oldid=5627541",
+    "text_sha256": "f3e387f312d34ed324aa07dec147a6712d6da66c06fdc1fc8b6f74fdce69721e",
+    "title": "Отрочество",
+    "author": "Лев Толстой"
+  },
+  {
+    "id": "ru-6",
+    "language": "ru",
+    "split": "train",
+    "url": "https://ru.wikisource.org/w/index.php?oldid=5733096",
+    "text_sha256": "1af684c3ca96bd56c202733486966356e9a8563c4dcfb95f1eaca9ae8dabfa45",
+    "title": "Белые ночи",
+    "author": "Фёдор Достоевский"
+  },
+  {
+    "id": "ru-13",
+    "language": "ru",
+    "split": "train",
+    "url": "https://ru.wikisource.org/w/index.php?oldid=5759963",
+    "text_sha256": "6a4590f94881c874d8c3a747bd605c75017452b8e6c0c55d933e00c046213d9f",
+    "title": "Ася",
+    "author": "Иван Тургенев"
+  },
+  {
+    "id": "ru-18",
+    "language": "ru",
+    "split": "train",
+    "url": "https://ru.wikisource.org/w/index.php?oldid=5635200",
+    "text_sha256": "ba4f1b176b9cf3cf17ab3304849c9244d386de2250642df942e83ed4dee8828d",
+    "title": "Крейцерова соната",
+    "author": "Лев Толстой"
+  },
+  {
+    "id": "en-1080",
+    "language": "en",
+    "split": "validation",
+    "url": "https://www.gutenberg.org/cache/epub/1080/pg1080.txt",
+    "text_sha256": "c8c87503fce85b886617769d3b98e71af8b8c7304525b4548baadb5a0cf1a673",
+    "title": "A Modest Proposal",
+    "author": "Jonathan Swift"
+  },
+  {
+    "id": "ru-15",
+    "language": "ru",
+    "split": "validation",
+    "url": "https://ru.wikisource.org/w/index.php?oldid=5619020",
+    "text_sha256": "6c097b6ab2d197966312e03361704b40ba5ac9ff1e22a330f7ce990df8210559",
+    "title": "Муму",
+    "author": "Иван Тургенев"
+  },
+  {
+    "id": "en-1952",
+    "language": "en",
+    "split": "test",
+    "url": "https://www.gutenberg.org/cache/epub/1952/pg1952.txt",
+    "text_sha256": "6434ca7c7e62aa75c2c71d2d9729732ade90cd4dfc4d9dd6abfd22ffd329a183",
+    "title": "The Yellow Wallpaper",
+    "author": "Charlotte Perkins Gilman"
+  },
+  {
+    "id": "en-35",
+    "language": "en",
+    "split": "test",
+    "url": "https://www.gutenberg.org/cache/epub/35/pg35.txt",
+    "text_sha256": "0baabbfd58cb24a7fb0d6133df77f5fdb24e93aedb24707612f06976ae54ea57",
+    "title": "The Time Machine",
+    "author": "H. G. Wells"
+  },
+  {
+    "id": "ru-4",
+    "language": "ru",
+    "split": "test",
+    "url": "https://ru.wikisource.org/w/index.php?oldid=5644345",
+    "text_sha256": "7cfdd15ab4efcae6ef75dd38876334a33324950ded5d01ddb41e21b853955a2e",
+    "title": "Пиковая дама",
+    "author": "Александр Пушкин"
+  },
+  {
+    "id": "ru-16",
+    "language": "ru",
+    "split": "test",
+    "url": "https://ru.wikisource.org/w/index.php?oldid=5628147",
+    "text_sha256": "5c62a7cdc5b468d2a0074f43b149efa7ff5b09f94f92ef00051451bcf1e07bbe",
+    "title": "Каштанка",
+    "author": "Антон Чехов"
+  }
+]
