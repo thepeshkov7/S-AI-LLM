@@ -1,0 +1,4 @@
+Привет! Это экспериментальная языковая модель S AI.
+Мы изучаем языки и учимся строить нейронные сети.
+Hello! This is a small language model experiment.
+We are learning how to train a transformer from scratch.
