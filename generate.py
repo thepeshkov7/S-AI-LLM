@@ -24,6 +24,10 @@ def checkpoint_key(key):
     return key
 
 
+def format_instruction(instruction):
+    return f"User: {instruction.strip()}\nAssistant:"
+
+
 class TextGenerator:
     def __init__(self, model, tokenizer=None):
         self.model = model
@@ -80,7 +84,9 @@ class TextGenerator:
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--checkpoint", type=Path, default=Path("s_ai_0_1.pt"))
-    parser.add_argument("--prompt", default="Привет")
+    prompt = parser.add_mutually_exclusive_group()
+    prompt.add_argument("--prompt")
+    prompt.add_argument("--instruction")
     length = parser.add_mutually_exclusive_group()
     length.add_argument("--max-new-tokens", type=int)
     length.add_argument("--max-new-bytes", type=int)
@@ -94,10 +100,15 @@ def main():
         parser.error("Threads and output limits must be positive")
     torch.set_num_threads(args.threads)
     generator = TextGenerator.load(args.checkpoint)
+    prompt_text = args.prompt or "Привет"
+    if args.instruction is not None:
+        if not args.instruction.strip():
+            parser.error("Instruction must contain text")
+        prompt_text = format_instruction(args.instruction)
     completion, _ = generator.complete(
-        args.prompt, limit or 80, args.temperature, args.top_k, args.seed, args.max_new_bytes,
+        prompt_text, limit or 80, args.temperature, args.top_k, args.seed, args.max_new_bytes,
     )
-    print(args.prompt + completion)
+    print(completion.strip() if args.instruction is not None else prompt_text + completion)
 
 
 if __name__ == "__main__":

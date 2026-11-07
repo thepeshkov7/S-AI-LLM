@@ -33,3 +33,19 @@ Run the causal attention, legacy checkpoint and readiness regression tests with:
 python -m pip install -r requirements-test.txt
 python -m unittest discover -s tests -v
 ```
+
+## Continue with instruction tuning
+
+Run this experiment after completing the base training above. Keep the base weights and use a separate output directory for the instruction checkpoint.
+
+```bash
+python finetune.py --base runs/s_ai_0_1.pt --data-dir corpus --output runs/instruction-v1
+python generate.py --checkpoint runs/instruction-v1/s_ai_0_1_instruct.pt \
+  --instruction "Цвет: синий. Форма: круг. Назови форму." --top-k 1 --max-new-tokens 16
+```
+
+This stage starts from the base weights and vocabulary. It trains the model on generated Russian and English examples for small-integer addition, matching words, selecting a word by position, and extracting a field from a short description. Loss for instruction batches is applied to the answer and end token. The sampler gives equal weight to each task and balances yes and no within word comparison. By default, every fifth update uses original training prose to reduce forgetting.
+
+The split is assigned to each input group within a task before rendering the two languages, template variants and input order. A separate validation split selects the checkpoint by answer loss. Two test splits measure greedy exact match, one with new inputs and familiar wording and one with new inputs and withheld wording. The script also measures language-model loss on the original held-out prose validation set. Open-ended diagnostics illustrate limitations, and their outputs are kept separate from exact-match scores.
+
+`metrics.json` records counts and scores. `predictions.json` contains actual continuations before and after instruction tuning. In the API, send the output of `format_instruction()` in the existing `prompt` field and read `completion`. The model generates responses from the checkpoint. The synthetic task rules only create training and evaluation data.
