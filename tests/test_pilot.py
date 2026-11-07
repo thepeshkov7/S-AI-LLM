@@ -3,7 +3,7 @@ import unittest
 
 import torch
 
-from evaluate_chat import completions, score_answer
+from evaluate_chat import case_prompt, completions, score_answer
 from generate import TextGenerator
 from make_chat_eval import cases
 from model import TinyLLM
@@ -41,6 +41,15 @@ class PilotTest(unittest.TestCase):
         prompts = ["Good morning", "Привет, красивый и очень длинный мир", "Good"]
         expected = [generator.complete(prompt, max_new_tokens=10, top_k=1)[0].strip() for prompt in prompts]
         self.assertEqual(list(completions(generator, prompts, 10, 2)), expected)
+
+    def test_language_prefix_preserves_followup_roles(self):
+        case = {"prompt": "User: First turn\nAssistant: Okay\nUser: Follow-up\nAssistant:",
+                "language": "en", "task": "followup"}
+        self.assertEqual(case_prompt(case, False), case["prompt"])
+        self.assertEqual(
+            case_prompt(case, True),
+            "User: Answer in English.\nFirst turn\nAssistant: Okay\nUser: Follow-up\nAssistant:",
+        )
 
     def test_scoring_keeps_human_cases_separate(self):
         self.assertIsNone(score_answer("human", "any text", "reference"))

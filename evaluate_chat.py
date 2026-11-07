@@ -9,6 +9,7 @@ import re
 import torch
 
 from generate import TextGenerator, format_instruction
+from memory_chat import chat_prompt
 
 
 def score_answer(method, response, reference):
@@ -60,12 +61,23 @@ def completions(generator, prompts, max_new_tokens, batch_size):
         yield from (item.rstrip("\ufffd").strip() for item in tokenizer.decode_batch(outputs))
 
 
-def evaluate(checkpoint, benchmark, output, max_new_tokens=48, batch_size=16, threads=4):
+def case_prompt(case, language_prefix):
+    prompt = case["prompt"]
+    language = case["language"]
+    if case["task"] == "followup":
+        if language_prefix:
+            first, rest = prompt.removeprefix("User: ").split("\nAssistant:", 1)
+            return chat_prompt(first, language) + rest
+        return prompt
+    return chat_prompt(prompt, language) if language_prefix else format_instruction(prompt)
+
+
+def evaluate(checkpoint, benchmark, output, max_new_tokens=48, batch_size=16, threads=4, language_prefix=False):
     torch.set_num_threads(threads)
     raw = benchmark.read_bytes()
     cases = [json.loads(line) for line in raw.splitlines() if line]
     generator = TextGenerator.load(checkpoint)
-    prompts = [case["prompt"] if case["task"] == "followup" else format_instruction(case["prompt"]) for case in cases]
+    prompts = [case_prompt(case, language_prefix) for case in cases]
     tallies = defaultdict(lambda: {"correct": 0, "total": 0})
     predictions = []
     responses = completions(generator, prompts, max_new_tokens, batch_size)
@@ -80,7 +92,7 @@ def evaluate(checkpoint, benchmark, output, max_new_tokens=48, batch_size=16, th
     result = {
         "benchmark_sha256": sha256(raw).hexdigest(),
         "checkpoint_sha256": sha256(checkpoint.read_bytes()).hexdigest(),
-        "decoding": {"max_new_tokens": max_new_tokens, "greedy": True},
+        "decoding": {"max_new_tokens": max_new_tokens, "greedy": True, "language_prefix": language_prefix},
         "automatic": tallies,
         "manual_cases": sum(case["score"] == "human" for case in cases),
         "predictions": predictions,
@@ -98,6 +110,7 @@ def main():
     parser.add_argument("--max-new-tokens", type=int, default=48)
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--threads", type=int, default=4)
+    parser.add_argument("--language-prefix", action="store_true")
     args = parser.parse_args()
     if min(args.max_new_tokens, args.batch_size, args.threads) < 1:
         parser.error("Token, batch and thread limits must be positive")

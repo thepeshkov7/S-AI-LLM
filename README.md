@@ -81,3 +81,24 @@ python tune_memory.py --base runs/wiki-pilot/s_ai_0_2_pilot_instruct.pt \
 ```
 
 This warm-started CPU experiment teaches the Transformer to match questions against account-memory keys and measures both recall and abstention. A separate path generates short replies in the requested language. See [DEPLOYMENT.md](DEPLOYMENT.md#experimental-bilingual-memory-route) for the private API and the S AI server adapter.
+
+## Bilingual chat tuning from the memory checkpoint
+
+This experiment continues the S AI 0.2 Memory weights and reuses the original
+tokenizer. It mixes authored everyday questions, generated short arithmetic
+and context exercises, attributed translation pairs from the translation
+pilot, and the existing fictional memory examples. A separate validation set
+selects the checkpoint. Its everyday portion holds out wording for familiar
+topics. The final benchmark also includes separate questions on new topics.
+
+```bash
+python tune_chat.py --base runs/memory/s_ai_0_2_memory.pt \
+  --translations corpus/translation-pilot --output runs/chat/s_ai_0_2_chat.pt
+python evaluate_chat.py --checkpoint runs/chat/s_ai_0_2_chat.pt \
+  --benchmark data/chat-probe-v2.jsonl --language-prefix --output runs/chat/probe.json
+```
+
+The probe includes reference criteria for manual review. To compare with
+the earlier chat benchmark, run `evaluate_chat.py` on the same frozen file
+for both checkpoints with `--language-prefix`. The existing private
+`/chat` endpoint uses that language prefix for one-turn generation.
