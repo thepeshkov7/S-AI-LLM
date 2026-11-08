@@ -1,0 +1,837 @@
+{
+  "checkpoint_sha256": "0f5f6547d27e1482571f8c8b5defae08b14da072d2dfa720b0c049100cce9044",
+  "probes_sha256": "5182fd6322c577829c2bae47f39c0f25d0caa25eac4b2f3ddb85b6d4d7511c94",
+  "device": "cpu",
+  "precision": "bf16",
+  "seed": 20261108,
+  "top_k": 1,
+  "max_new_tokens": 32,
+  "summary": {
+    "copy": {
+      "regression": {
+        "ru": {
+          "examples": 7,
+          "exact": 0,
+          "exact_total": 1
+        },
+        "en": {
+          "examples": 7,
+          "exact": 0,
+          "exact_total": 1
+        }
+      },
+      "holdout": {
+        "ru": {
+          "examples": 6,
+          "exact": 0,
+          "exact_total": 3
+        },
+        "en": {
+          "examples": 6,
+          "exact": 0,
+          "exact_total": 3
+        }
+      }
+    },
+    "vocabulary": {
+      "regression": {
+        "ru": {
+          "examples": 7,
+          "exact": 0,
+          "exact_total": 1
+        },
+        "en": {
+          "examples": 7,
+          "exact": 0,
+          "exact_total": 1
+        }
+      },
+      "holdout": {
+        "ru": {
+          "examples": 6,
+          "exact": 0,
+          "exact_total": 3
+        },
+        "en": {
+          "examples": 6,
+          "exact": 0,
+          "exact_total": 3
+        }
+      }
+    }
+  },
+  "rows": [
+    {
+      "id": "ru-greeting",
+      "language": "ru",
+      "set": "regression",
+      "task": "dialogue",
+      "turns": [
+        "Привет! Как дела?"
+      ],
+      "modes": {
+        "copy": {
+          "answers": [
+            ",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,"
+          ],
+          "generated_tokens": [
+            32
+          ],
+          "exact": null
+        },
+        "vocabulary": {
+          "answers": [
+            ",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,"
+          ],
+          "generated_tokens": [
+            32
+          ],
+          "exact": null
+        }
+      }
+    },
+    {
+      "id": "en-greeting",
+      "language": "en",
+      "set": "regression",
+      "task": "dialogue",
+      "turns": [
+        "Hello! How are you?"
+      ],
+      "modes": {
+        "copy": {
+          "answers": [
+            ",,,, the,,,,,,,,,,,,,,,,,,,,,,,,,,,"
+          ],
+          "generated_tokens": [
+            32
+          ],
+          "exact": null
+        },
+        "vocabulary": {
+          "answers": [
+            ",, the, the the the the the the the the the the the the the the the the the the the the the the the the the the the the"
+          ],
+          "generated_tokens": [
+            32
+          ],
+          "exact": null
+        }
+      }
+    },
+    {
+      "id": "ru-identity",
+      "language": "ru",
+      "set": "regression",
+      "task": "identity",
+      "turns": [
+        "Расскажи о себе."
+      ],
+      "modes": {
+        "copy": {
+          "answers": [
+            ",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,"
+          ],
+          "generated_tokens": [
+            32
+          ],
+          "exact": null
+        },
+        "vocabulary": {
+          "answers": [
+            ",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,"
+          ],
+          "generated_tokens": [
+            32
+          ],
+          "exact": null
+        }
+      }
+    },
+    {
+      "id": "en-identity",
+      "language": "en",
+      "set": "regression",
+      "task": "identity",
+      "turns": [
+        "Tell me about yourself."
+      ],
+      "modes": {
+        "copy": {
+          "answers": [
+            ",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,"
+          ],
+          "generated_tokens": [
+            32
+          ],
+          "exact": null
+        },
+        "vocabulary": {
+          "answers": [
+            ",,, the, the, the,, the the the the the the the the the the the the the the,,,,,,,,"
+          ],
+          "generated_tokens": [
+            32
+          ],
+          "exact": null
+        }
+      }
+    },
+    {
+      "id": "ru-2-plus-2",
+      "language": "ru",
+      "set": "regression",
+      "task": "arithmetic",
+      "turns": [
+        "Сколько будет 2 + 2?"
+      ],
+      "expected": "4",
+      "modes": {
+        "copy": {
+          "answers": [
+            ",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,"
+          ],
+          "generated_tokens": [
+            32
+          ],
+          "exact": false
+        },
+        "vocabulary": {
+          "answers": [
+            ",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,"
+          ],
+          "generated_tokens": [
+            32
+          ],
+          "exact": false
+        }
+      }
+    },
+    {
+      "id": "en-2-plus-2",
+      "language": "en",
+      "set": "regression",
+      "task": "arithmetic",
+      "turns": [
+        "What is 2 + 2?"
+      ],
+      "expected": "4",
+      "modes": {
+        "copy": {
+          "answers": [
+            ",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,"
+          ],
+          "generated_tokens": [
+            32
+          ],
+          "exact": false
+        },
+        "vocabulary": {
+          "answers": [
+            ",,,,, the,, the,, the the the the the the the the the the the the the the the the the the the the the"
+          ],
+          "generated_tokens": [
+            32
+          ],
+          "exact": false
+        }
+      }
+    },
+    {
+      "id": "ru-sky",
+      "language": "ru",
+      "set": "regression",
+      "task": "science",
+      "turns": [
+        "Почему небо голубое?"
+      ],
+      "modes": {
+        "copy": {
+          "answers": [
+            ",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,"
+          ],
+          "generated_tokens": [
+            32
+          ],
+          "exact": null
+        },
+        "vocabulary": {
+          "answers": [
+            ",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,"
+          ],
+          "generated_tokens": [
+            32
+          ],
+          "exact": null
+        }
+      }
+    },
+    {
+      "id": "en-sky",
+      "language": "en",
+      "set": "regression",
+      "task": "science",
+      "turns": [
+        "Why is the sky blue?"
+      ],
+      "modes": {
+        "copy": {
+          "answers": [
+            " the the the the the the the the the the the the the the the the the the the the the the the the the the the the the the the the"
+          ],
+          "generated_tokens": [
+            32
+          ],
+          "exact": null
+        },
+        "vocabulary": {
+          "answers": [
+            " the the, the the the the the the the the the the the the the the the the the the the the the the, the the the, the the"
+          ],
+          "generated_tokens": [
+            32
+          ],
+          "exact": null
+        }
+      }
+    },
+    {
+      "id": "ru-internet",
+      "language": "ru",
+      "set": "regression",
+      "task": "explanation",
+      "turns": [
+        "Объясни, как работает интернет."
+      ],
+      "modes": {
+        "copy": {
+          "answers": [
+            ",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,"
+          ],
+          "generated_tokens": [
+            32
+          ],
+          "exact": null
+        },
+        "vocabulary": {
+          "answers": [
+            ",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,"
+          ],
+          "generated_tokens": [
+            32
+          ],
+          "exact": null
+        }
+      }
+    },
+    {
+      "id": "en-internet",
+      "language": "en",
+      "set": "regression",
+      "task": "explanation",
+      "turns": [
+        "Explain how the internet works."
+      ],
+      "modes": {
+        "copy": {
+          "answers": [
+            " the the the the the the the the the the the the the the the the the the the the the the the the the the the the the the the the"
+          ],
+          "generated_tokens": [
+            32
+          ],
+          "exact": null
+        },
+        "vocabulary": {
+          "answers": [
+            " the the the the the the the the the the the the the the the the the the the the the the the the the the the the the the the the"
+          ],
+          "generated_tokens": [
+            32
+          ],
+          "exact": null
+        }
+      }
+    },
+    {
+      "id": "ru-story",
+      "language": "ru",
+      "set": "regression",
+      "task": "writing",
+      "turns": [
+        "Напиши короткий рассказ."
+      ],
+      "modes": {
+        "copy": {
+          "answers": [
+            ",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,"
+          ],
+          "generated_tokens": [
+            32
+          ],
+          "exact": null
+        },
+        "vocabulary": {
+          "answers": [
+            ",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,"
+          ],
+          "generated_tokens": [
+            32
+          ],
+          "exact": null
+        }
+      }
+    },
+    {
+      "id": "en-story",
+      "language": "en",
+      "set": "regression",
+      "task": "writing",
+      "turns": [
+        "Write a short story."
+      ],
+      "modes": {
+        "copy": {
+          "answers": [
+            ",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,"
+          ],
+          "generated_tokens": [
+            32
+          ],
+          "exact": null
+        },
+        "vocabulary": {
+          "answers": [
+            ",, the, the the,,, the the the the the the the the the the the the the the the, the the the, the the,"
+          ],
+          "generated_tokens": [
+            32
+          ],
+          "exact": null
+        }
+      }
+    },
+    {
+      "id": "ru-help",
+      "language": "ru",
+      "set": "regression",
+      "task": "dialogue",
+      "turns": [
+        "Что делать, если я не понял объяснение?"
+      ],
+      "modes": {
+        "copy": {
+          "answers": [
+            ",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,"
+          ],
+          "generated_tokens": [
+            32
+          ],
+          "exact": null
+        },
+        "vocabulary": {
+          "answers": [
+            ",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,"
+          ],
+          "generated_tokens": [
+            32
+          ],
+          "exact": null
+        }
+      }
+    },
+    {
+      "id": "en-help",
+      "language": "en",
+      "set": "regression",
+      "task": "dialogue",
+      "turns": [
+        "Can you explain that more simply?"
+      ],
+      "modes": {
+        "copy": {
+          "answers": [
+            "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"
+          ],
+          "generated_tokens": [
+            32
+          ],
+          "exact": null
+        },
+        "vocabulary": {
+          "answers": [
+            ", the the the the the the the the the the the the the the the the the the the the the the the the, the, the the, the"
+          ],
+          "generated_tokens": [
+            32
+          ],
+          "exact": null
+        }
+      }
+    },
+    {
+      "id": "ru-math",
+      "language": "ru",
+      "set": "holdout",
+      "task": "arithmetic",
+      "turns": [
+        "На полке лежат 17 тетрадей. Убрали 6 и добавили 4. Сколько тетрадей теперь? Ответь одним числом."
+      ],
+      "expected": "15",
+      "modes": {
+        "copy": {
+          "answers": [
+            ",.\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"
+          ],
+          "generated_tokens": [
+            32
+          ],
+          "exact": false
+        },
+        "vocabulary": {
+          "answers": [
+            ",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,"
+          ],
+          "generated_tokens": [
+            32
+          ],
+          "exact": false
+        }
+      }
+    },
+    {
+      "id": "en-math",
+      "language": "en",
+      "set": "holdout",
+      "task": "arithmetic",
+      "turns": [
+        "A drawer holds 19 badges. You remove 8 and add 3. How many badges are there now? Reply with just the number."
+      ],
+      "expected": "14",
+      "modes": {
+        "copy": {
+          "answers": [
+            ", the the the the the the the the the the the the the the the the the the the the the the the the the the the the the the the"
+          ],
+          "generated_tokens": [
+            32
+          ],
+          "exact": false
+        },
+        "vocabulary": {
+          "answers": [
+            ", the the the the the the the the the the the the the the the the the the the the the the the the the the the the the the the"
+          ],
+          "generated_tokens": [
+            32
+          ],
+          "exact": false
+        }
+      }
+    },
+    {
+      "id": "ru-logic",
+      "language": "ru",
+      "set": "holdout",
+      "task": "logic",
+      "turns": [
+        "Мира пришла раньше Нины, но позже Льва. Кто пришёл первым? Напиши только имя."
+      ],
+      "expected": "Лев",
+      "modes": {
+        "copy": {
+          "answers": [
+            ".\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n"
+          ],
+          "generated_tokens": [
+            32
+          ],
+          "exact": false
+        },
+        "vocabulary": {
+          "answers": [
+            ",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,"
+          ],
+          "generated_tokens": [
+            32
+          ],
+          "exact": false
+        }
+      }
+    },
+    {
+      "id": "en-logic",
+      "language": "en",
+      "set": "holdout",
+      "task": "logic",
+      "turns": [
+        "Mina finished before Jo but after Eli. Who finished first? Reply with just the name."
+      ],
+      "expected": "Eli",
+      "modes": {
+        "copy": {
+          "answers": [
+            " the the the the the the the the the the the the the the the the the the the the the the the the the the the the the the the the"
+          ],
+          "generated_tokens": [
+            32
+          ],
+          "exact": false
+        },
+        "vocabulary": {
+          "answers": [
+            " the the the the the the the the the the the the the the the the the the the the, the, the the the, the,, the the"
+          ],
+          "generated_tokens": [
+            32
+          ],
+          "exact": false
+        }
+      }
+    },
+    {
+      "id": "ru-science",
+      "language": "ru",
+      "set": "holdout",
+      "task": "science",
+      "turns": [
+        "Почему металлическая ложка на кухне кажется холоднее деревянной, хотя обе пролежали рядом всю ночь?"
+      ],
+      "modes": {
+        "copy": {
+          "answers": [
+            ",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,"
+          ],
+          "generated_tokens": [
+            32
+          ],
+          "exact": null
+        },
+        "vocabulary": {
+          "answers": [
+            ".\n.\n.\n.\n.\n.\n.\n\n.\n.\n.\n.\n.\n.\n.\n.\n."
+          ],
+          "generated_tokens": [
+            32
+          ],
+          "exact": null
+        }
+      }
+    },
+    {
+      "id": "en-science",
+      "language": "en",
+      "set": "holdout",
+      "task": "science",
+      "turns": [
+        "Why can a metal spoon feel colder than a wooden spoon when both have been on the same table all night?"
+      ],
+      "modes": {
+        "copy": {
+          "answers": [
+            " the the the the the the the the the the the the the the the the the the the the the the the the the the the the the the the the"
+          ],
+          "generated_tokens": [
+            32
+          ],
+          "exact": null
+        },
+        "vocabulary": {
+          "answers": [
+            " the the the the the the the the the the the the the the the the the the the the the the the the the the the the the the the the"
+          ],
+          "generated_tokens": [
+            32
+          ],
+          "exact": null
+        }
+      }
+    },
+    {
+      "id": "ru-format",
+      "language": "ru",
+      "set": "holdout",
+      "task": "format",
+      "turns": [
+        "Верни только два слова через запятую, в исходном порядке. Слова для вывода — рубин и облако."
+      ],
+      "expected": "рубин, облако",
+      "modes": {
+        "copy": {
+          "answers": [
+            ".\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n"
+          ],
+          "generated_tokens": [
+            32
+          ],
+          "exact": false
+        },
+        "vocabulary": {
+          "answers": [
+            ".\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n"
+          ],
+          "generated_tokens": [
+            32
+          ],
+          "exact": false
+        }
+      }
+    },
+    {
+      "id": "en-format",
+      "language": "en",
+      "set": "holdout",
+      "task": "format",
+      "turns": [
+        "Return just the two words in the same order, separated by a comma. The words are copper and lantern."
+      ],
+      "expected": "copper, lantern",
+      "modes": {
+        "copy": {
+          "answers": [
+            " the the the the the the the the the the the the the the the the the the the the the the the the the the the the the the the the"
+          ],
+          "generated_tokens": [
+            32
+          ],
+          "exact": false
+        },
+        "vocabulary": {
+          "answers": [
+            " the the the the the the the the the the the the the the the the the the the the the the the the the the the the the the the the"
+          ],
+          "generated_tokens": [
+            32
+          ],
+          "exact": false
+        }
+      }
+    },
+    {
+      "id": "ru-followup",
+      "language": "ru",
+      "set": "holdout",
+      "task": "dialogue",
+      "turns": [
+        "Что означает очередь в приложении для печати? Объясни простыми словами.",
+        "Теперь сравни это с очередью в кафе в одном предложении."
+      ],
+      "modes": {
+        "copy": {
+          "answers": [
+            ".\n\n.\n.\n.\n.\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n",
+            "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"
+          ],
+          "generated_tokens": [
+            32,
+            32
+          ],
+          "exact": null
+        },
+        "vocabulary": {
+          "answers": [
+            ".\n.\n.\n.\n.\n.\n.\n.\n.\n\n.\n.\n.\n.\n.\n.\n.",
+            ".\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n"
+          ],
+          "generated_tokens": [
+            32,
+            32
+          ],
+          "exact": null
+        }
+      }
+    },
+    {
+      "id": "en-followup",
+      "language": "en",
+      "set": "holdout",
+      "task": "dialogue",
+      "turns": [
+        "What is a print queue? Explain it in simple terms.",
+        "Now compare it to a line at a cafe in one sentence."
+      ],
+      "modes": {
+        "copy": {
+          "answers": [
+            " the the the the the the the the the the the the the the the the the the the the the the the the the the the the the the the the",
+            " the the the the the the the the the the the the the the the the the the the the the the the the the the the the the the the the"
+          ],
+          "generated_tokens": [
+            32,
+            32
+          ],
+          "exact": null
+        },
+        "vocabulary": {
+          "answers": [
+            " the the the the the the the the the the the the the the the the the the the the the the the the the the the the the the the the",
+            " the the the the the the the the the the the the the the the the the the the the the the the the the the the the the the the the"
+          ],
+          "generated_tokens": [
+            32,
+            32
+          ],
+          "exact": null
+        }
+      }
+    },
+    {
+      "id": "ru-creative",
+      "language": "ru",
+      "set": "holdout",
+      "task": "writing",
+      "turns": [
+        "Напиши два коротких предложения про фонарь, который сторожит пустой причал."
+      ],
+      "modes": {
+        "copy": {
+          "answers": [
+            ",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,"
+          ],
+          "generated_tokens": [
+            32
+          ],
+          "exact": null
+        },
+        "vocabulary": {
+          "answers": [
+            ",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,"
+          ],
+          "generated_tokens": [
+            32
+          ],
+          "exact": null
+        }
+      }
+    },
+    {
+      "id": "en-creative",
+      "language": "en",
+      "set": "holdout",
+      "task": "writing",
+      "turns": [
+        "Write two short sentences about a lantern keeping watch over an empty pier."
+      ],
+      "modes": {
+        "copy": {
+          "answers": [
+            " the the the the the the the the the the the the the the the the the the the the the the the the the the the the the the the the"
+          ],
+          "generated_tokens": [
+            32
+          ],
+          "exact": null
+        },
+        "vocabulary": {
+          "answers": [
+            " the the the the the the the the the the the the the the the the the the the the the the the the the the the the, the the the"
+          ],
+          "generated_tokens": [
+            32
+          ],
+          "exact": null
+        }
+      }
+    }
+  ]
+}

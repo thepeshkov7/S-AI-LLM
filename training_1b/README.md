@@ -35,6 +35,39 @@ python -m training_1b.evaluate --checkpoint "$FINAL" \
   --output "$RUN/answers.json" --device cuda --precision fp16 --max-tokens 32
 ```
 
+Повторите проверку с `--vocabulary-only --output "$RUN/answers-vocabulary.json"`, чтобы отдельно увидеть, что даёт обученная словарная проекция. Обычный вызов оценивает штатную генерацию CopyLLM.
+
+## Проверочный запуск на Selectel PRO 6000 96 ГБ
+
+На уже запущенном сервере Linux перенесите в закрытый каталог чекпойнт шага 24 и архив `sai1b_wikipedia_pilot_10m.tar.gz`. Убедитесь, что драйвер видит GPU, и установите PyTorch с CUDA 12.8 в отдельное виртуальное окружение. [GPU в Selectel](https://docs.selectel.ru/cloud-servers/create/gpus/) · [Сборки PyTorch](https://pytorch.org/get-started/previous-versions/)
+
+```bash
+nvidia-smi
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install torch==2.7.1 --index-url https://download.pytorch.org/whl/cu128
+python -m pip install tokenizers==0.21.4 filelock
+python - <<'PY'
+import torch
+
+assert torch.cuda.is_available()
+assert torch.cuda.is_bf16_supported(including_emulation=False)
+sample = torch.ones((256, 256), device="cuda", dtype=torch.bfloat16)
+assert (sample @ sample)[0, 0].item() == 256
+print(torch.cuda.get_device_name(), torch.__version__, torch.version.cuda)
+PY
+```
+
+Из корня рабочей ветки укажите проверенный локальный файл `PILOT`, распакованный `CORPUS` и новый постоянный каталог `RUN` по образцу выше. Начните с 16 шагов BF16 на существующем профиле. Это 1 048 576 позиций с записью состояния в конце отрезка.
+
+```bash
+printf '0f5f6547d27e1482571f8c8b5defae08b14da072d2dfa720b0c049100cce9044  %s\n' "$PILOT" | sha256sum --check &&
+  python -m training_1b.pretrain --profile training_1b/a100_h100.json \
+    --corpus "$CORPUS" --init "$PILOT" --output "$RUN" --stop-after 16
+```
+
+По `metrics.json` проверьте токены в секунду, время шагов, пик памяти и validation loss обоих языков. Для повторного запуска с тем же профилем и корпусом используйте `--resume "$RUN/training-state.pt"` и более поздний `--stop-after`. При переходе на больший корпус начните отдельный этап через `--init`.
+
 ## A100 или H100
 
 ```bash

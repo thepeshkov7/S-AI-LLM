@@ -9,6 +9,7 @@ import torch.nn.functional as F
 from torch.nn.utils.rnn import pad_sequence
 
 from generate import format_instruction
+from model import TinyLLM
 from packed_corpus import digest
 from train import EOS
 from training_1b.checkpoint import build_model, load_head, read_checkpoint, read_tokenizer
@@ -45,9 +46,11 @@ class DecodeCache:
         self.hidden = hidden.new_zeros((size, capacity, hidden.shape[-1]))
         self.hidden[:, :self.width] = model.norm(hidden)
 
-    def scores(self):
+    def scores(self, *, vocabulary_only=False):
         hidden = self.hidden[:, :self.width]
         states = hidden[self.rows, self.positions]
+        if vocabulary_only:
+            return self.model.output(states).float()
         attention = self.model._copy_attention(states[:, None], hidden, self.positions[:, None])[:, 0]
         return self.model._mixture(states, self.ids[:, :self.width], attention)
 
@@ -69,7 +72,7 @@ class DecodeCache:
 
 
 @torch.inference_mode()
-def generate(model, tokenizer, prompts, seeds, max_tokens, top_k):
+def generate(model, tokenizer, prompts, seeds, max_tokens, top_k, *, vocabulary_only=False):
     device = model.token.weight.device
     eos = tokenizer.token_to_id(EOS)
     sequences = [tokenizer.encode(prompt).ids for prompt in prompts]
@@ -86,9 +89,13 @@ def generate(model, tokenizer, prompts, seeds, max_tokens, top_k):
         if cache is None:
             windows = [torch.tensor(sequences[i][-model.context:], device=device) for i in live]
             positions = torch.tensor([len(window) - 1 for window in windows], device=device)
-            scores = model.next_scores(pad_sequence(windows, batch_first=True, padding_value=eos), positions)
+            batch = pad_sequence(windows, batch_first=True, padding_value=eos)
+            if vocabulary_only:
+                scores = TinyLLM.next_scores(model, batch, positions).float()
+            else:
+                scores = model.next_scores(batch, positions)
         else:
-            scores = cache.scores()[live]
+            scores = cache.scores(vocabulary_only=vocabulary_only)[live]
         if not torch.isfinite(scores).all().item():
             raise FloatingPointError("Nonfinite generation scores")
         if top_k == 1:
@@ -111,7 +118,7 @@ def generate(model, tokenizer, prompts, seeds, max_tokens, top_k):
     return [(tokenizer.decode(ids).rstrip("\ufffd"), len(ids)) for ids in generated]
 
 
-def evaluate(model, tokenizer, probes, max_tokens, seed, top_k):
+def evaluate(model, tokenizer, probes, max_tokens, seed, top_k, *, vocabulary_only=False):
     model.eval()
     histories = ["" for _ in probes]
     replies = [[] for _ in probes]
@@ -119,7 +126,8 @@ def evaluate(model, tokenizer, probes, max_tokens, seed, top_k):
     for turn in range(max(len(probe["turns"]) for probe in probes)):
         live = [i for i, probe in enumerate(probes) if len(probe["turns"]) > turn]
         prompts = [histories[i] + format_instruction(probes[i]["turns"][turn]) for i in live]
-        results = generate(model, tokenizer, prompts, [seed + i * 10 + turn for i in live], max_tokens, top_k)
+        results = generate(model, tokenizer, prompts, [seed + i * 10 + turn for i in live],
+                           max_tokens, top_k, vocabulary_only=vocabulary_only)
         for i, formatted, (answer, count) in zip(live, prompts, results, strict=True):
             replies[i].append(answer)
             counts[i].append(count)
@@ -142,6 +150,8 @@ def main():
     parser.add_argument("--max-tokens", type=int, default=32)
     parser.add_argument("--top-k", type=int, default=1)
     parser.add_argument("--seed", type=int, default=20261108)
+    parser.add_argument("--vocabulary-only", action="store_true",
+                        help="Diagnose the vocabulary projection without copy scores")
     args = parser.parse_args()
     if args.output.exists():
         parser.error("Choose a new output file")
@@ -157,7 +167,8 @@ def main():
     if args.head:
         load_head(model, read_checkpoint(args.head))
     probes = [json.loads(line) for line in PROBES.read_text(encoding="utf-8").splitlines()]
-    rows = evaluate(model, tokenizer, probes, args.max_tokens, args.seed, args.top_k)
+    rows = evaluate(model, tokenizer, probes, args.max_tokens, args.seed, args.top_k,
+                    vocabulary_only=args.vocabulary_only)
     summary = {}
     for split in ("regression", "holdout"):
         summary[split] = {}
@@ -168,7 +179,7 @@ def main():
                                         "exact_total": len(scorable)}
     result = {"checkpoint_sha256": digest(args.checkpoint), "head_sha256": digest(args.head) if args.head else None,
               "probes_sha256": digest(PROBES), "device": args.device, "precision": precision,
-              "seed": args.seed, "top_k": args.top_k,
+              "seed": args.seed, "top_k": args.top_k, "scoring": "vocabulary" if args.vocabulary_only else "copy",
               "max_new_tokens": args.max_tokens, "summary": summary, "rows": rows}
     with args.output.open("x", encoding="utf-8") as handle:
         json.dump(result, handle, ensure_ascii=False, indent=2, allow_nan=False)

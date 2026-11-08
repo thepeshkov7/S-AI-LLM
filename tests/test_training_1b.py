@@ -7,7 +7,7 @@ import torch
 import torch.nn.functional as F
 from torch.nn.utils.rnn import pad_sequence
 
-from model import CopyLLM
+from model import CopyLLM, TinyLLM
 from packed_corpus import PackedCorpus, SPLITS, pack
 from train import save_checkpoint
 from training_1b.checkpoint import read_checkpoint
@@ -44,7 +44,9 @@ class CopyTrainingTests(unittest.TestCase):
             cache = DecodeCache(model, rows, capacity=8, eos=0)
             for tokens in ([4, 7], [1, 2]):
                 positions = torch.tensor([len(row) - 1 for row in rows])
-                torch.testing.assert_close(cache.scores(), model.next_scores(pad_sequence(rows, batch_first=True), positions))
+                batch = pad_sequence(rows, batch_first=True)
+                torch.testing.assert_close(cache.scores(), model.next_scores(batch, positions))
+                torch.testing.assert_close(cache.scores(vocabulary_only=True), TinyLLM.next_scores(model, batch, positions))
                 cache.advance(tokens)
                 rows = [torch.cat((row, torch.tensor([token]))) for row, token in zip(rows, tokens, strict=True)]
 
