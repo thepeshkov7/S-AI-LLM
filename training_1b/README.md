@@ -8,6 +8,33 @@
 
 Пилот сохраняет состояние после шага 12 и продолжает до шага 24. Для возобновления в новом сеансе выполните ячейки настройки и корпуса, затем ячейку возобновления. В режиме отдельных файлов сначала верните сохранённый `training-state.pt` в `/content/sai1b-results/t4-pilot`.
 
+## Продолжение после шага 24 на T4
+
+[Профиль продолжения](t4_continuation.json) задаёт 512 новых шагов, 524 288 позиций поровну на RU и EN и обновление всех 20 блоков. Состав validation и test тот же, что в пилоте при использовании того же корпуса. Новый seed меняет последовательность тренировочных окон. Новый этап начинает собственное расписание скорости обучения и сохраняет состояние каждые 128 шагов.
+
+В Colab выполните ячейки настройки и подготовки корпуса. В терминале перейдите в корень актуальной ветки репозитория. Для `PILOT` используйте локальную копию `t4-pilot/training-state.pt`, для `CORPUS` — каталог распакованного пилотного корпуса, для `RUN` — новый каталог на диске с сохранением между сеансами.
+
+```bash
+PILOT=/path/to/local/t4-step24.pt
+CORPUS=/path/to/wiki-pilot
+RUN=/path/to/persistent/t4-continuation
+printf '0f5f6547d27e1482571f8c8b5defae08b14da072d2dfa720b0c049100cce9044  %s\n' "$PILOT" | sha256sum --check &&
+  python -m training_1b.pretrain --profile training_1b/t4_continuation.json \
+  --corpus "$CORPUS" --init "$PILOT" --output "$RUN" --stop-after 128
+```
+
+После остановки на шаге 128 или прерывания возьмите локальную копию последнего `training-state.pt` из нового каталога. Для возобновления используйте тот же профиль, корпус и версии среды.
+
+```bash
+RESUME=/path/to/local/t4-continuation-state.pt
+python -m training_1b.pretrain --profile training_1b/t4_continuation.json \
+  --corpus "$CORPUS" --resume "$RESUME" --output "$RUN"
+
+FINAL=/path/to/local/t4-continuation-final.pt
+python -m training_1b.evaluate --checkpoint "$FINAL" \
+  --output "$RUN/answers.json" --device cuda --precision fp16 --max-tokens 32
+```
+
 ## A100 или H100
 
 ```bash
