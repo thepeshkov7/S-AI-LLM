@@ -44,8 +44,9 @@ def evaluate(model, corpus, split, batch_size, device, max_windows):
     return result
 
 
-def learning_rate(step, total, peak):
-    warmup = max(1, total // 20)
+def learning_rate(step, total, peak, warmup=None):
+    if warmup is None:
+        warmup = max(1, total // 20)
     if step <= warmup:
         return peak * step / warmup
     fraction = (step - warmup) / (total - warmup)

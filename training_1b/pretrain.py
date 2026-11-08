@@ -33,6 +33,7 @@ class Profile:
     eval_windows: int = 16
     save_every: int = 12
     seed: int = 20261108
+    warmup_steps: int | None = None
 
     def __post_init__(self):
         if min(self.steps, self.sequence_length, self.micro_batch, self.accumulation,
@@ -46,6 +47,8 @@ class Profile:
             raise ValueError("Unsupported precision")
         if self.optimizer not in {"adamw", "adamw8bit"} or self.objective not in {"vocabulary", "copy"}:
             raise ValueError("Unsupported optimizer or objective")
+        if self.warmup_steps is not None and not 1 <= self.warmup_steps <= self.steps:
+            raise ValueError("Warmup steps must be within the run")
 
 
 def configure(model, profile):
@@ -177,8 +180,11 @@ def train(corpus, profile, checkpoint, output, device, stop, *, resume=False, re
         raise ValueError("The training corpus and original checkpoint need the same tokenizer")
     if any(len(corpus.splits["train"][lang]) <= profile.sequence_length for lang in LANGUAGES):
         raise ValueError("Training corpus is too short")
+    profile_settings = asdict(profile)
+    if profile.warmup_steps is None:
+        del profile_settings["warmup_steps"]
     settings = {
-        "profile": asdict(profile), "corpus_sha256": corpus.fingerprint, "config": payload["config"],
+        "profile": profile_settings, "corpus_sha256": corpus.fingerprint, "config": payload["config"],
         "device": device, "torch": str(torch.__version__), "gpu": torch.cuda.get_device_name() if device == "cuda" else None,
     }
     if profile.optimizer == "adamw8bit":
@@ -232,7 +238,7 @@ def train(corpus, profile, checkpoint, output, device, stop, *, resume=False, re
     for step in range(first, stop + 1):
         started = monotonic()
         model.train()
-        lr = learning_rate(step, profile.steps, profile.lr)
+        lr = learning_rate(step, profile.steps, profile.lr, profile.warmup_steps)
         for group in optimizer.param_groups:
             group["lr"] = lr
         if step == 1:

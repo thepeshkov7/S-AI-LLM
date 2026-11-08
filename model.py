@@ -40,12 +40,17 @@ class Block(nn.Module):
         self.ln2 = nn.LayerNorm(width)
         self.ff = nn.Sequential(nn.Linear(width, 4 * width), nn.GELU(), nn.Linear(4 * width, width))
 
-    def forward(self, x):
+    def attention_projections(self, x):
         batch, length, width = x.shape
-        q, k, v = self.qkv(self.ln1(x)).view(batch, length, 3, self.heads, -1).permute(2, 0, 3, 1, 4)
-        attention = F.scaled_dot_product_attention(q, k, v, is_causal=True)
-        x = x + self.proj(attention.transpose(1, 2).reshape(batch, length, width))
+        return self.qkv(self.ln1(x)).view(batch, length, 3, self.heads, -1).permute(2, 0, 3, 1, 4)
+
+    def attention_residual(self, x, attention):
+        x = x + self.proj(attention.transpose(1, 2).reshape(x.shape))
         return x + self.ff(self.ln2(x))
+
+    def forward(self, x):
+        q, k, v = self.attention_projections(x)
+        return self.attention_residual(x, F.scaled_dot_product_attention(q, k, v, is_causal=True))
 
 
 class TinyLLM(nn.Module):

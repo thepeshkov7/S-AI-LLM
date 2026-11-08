@@ -1,0 +1,31 @@
+{
+  "checkpoint": {
+    "status": "incomplete",
+    "present_parts": [
+      "sai1b_cpu_step8.pt.part-00",
+      "sai1b_cpu_step8.pt.part-01",
+      "sai1b_cpu_step8.pt.part-02",
+      "sai1b_cpu_step8.pt.part-03",
+      "sai1b_cpu_step8.pt.part-04",
+      "sai1b_cpu_step8.pt.part-05",
+      "sai1b_cpu_step8.pt.part-06",
+      "sai1b_cpu_step8.pt.part-07",
+      "sai1b_cpu_step8.pt.part-08",
+      "sai1b_cpu_step8.pt.part-09",
+      "sai1b_cpu_step8.pt.part-10",
+      "sai1b_cpu_step8.pt.part-11"
+    ],
+    "missing_parts": [
+      "sai1b_cpu_step8.pt.part-12",
+      "sai1b_cpu_step8.pt.part-13"
+    ],
+    "expected_joined_sha256": "214b8a18b21b882792fadff29f22565fd662b579ec237e4cf1efdc5e47750465"
+  },
+  "dataset_archives": {
+    "pilot_10m": "saved",
+    "instructions": "saved",
+    "prose": "saved",
+    "wiki_100m": "built_and_verified_locally_transfer_incomplete"
+  },
+  "environment": "Work runtime disconnected during the transfer."
+}

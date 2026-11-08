@@ -12,5 +12,6 @@
   "eval_every": 500,
   "eval_windows": 256,
   "save_every": 500,
-  "seed": 20261108
+  "seed": 20261108,
+  "warmup_steps": 1500
 }
