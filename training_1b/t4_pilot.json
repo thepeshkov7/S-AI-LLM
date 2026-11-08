@@ -1,0 +1,16 @@
+{
+  "steps": 24,
+  "sequence_length": 256,
+  "micro_batch": 1,
+  "accumulation": 4,
+  "lr": 0.00005,
+  "precision": "fp16",
+  "optimizer": "adamw8bit",
+  "gradient_checkpointing": true,
+  "last_blocks": 20,
+  "objective": "vocabulary",
+  "eval_every": 12,
+  "eval_windows": 16,
+  "save_every": 12,
+  "seed": 20261108
+}
