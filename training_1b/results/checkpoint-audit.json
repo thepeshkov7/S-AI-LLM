@@ -1,0 +1,39 @@
+{
+  "architecture": "copy_v1",
+  "config": {
+    "vocab_size": 6144,
+    "width": 2048,
+    "heads": 16,
+    "layers": 20,
+    "context": 256
+  },
+  "parameters_by_dtype": {
+    "torch.float16": 1033003011
+  },
+  "nonfinite_base_tensors": [],
+  "base_sha256": "a9074f2873dfa38ad3c05d6a41b123aa1c2b56f1acf2216bfaa1dbd36c16e4fc",
+  "previous_sha256": "461c2ae1b5b70b7eec2a34822770d682fbece3bc7dab73bbf3a6870943320025",
+  "copied": {
+    "checked": 4652163,
+    "equal": 4652163
+  },
+  "tokenizer_matches_previous": true,
+  "eos_id": 0,
+  "aliases_match_previous": true,
+  "aliases_match_tokenizer": true,
+  "heads": {
+    "head-v2.pt": {
+      "step": 12,
+      "best_val": 9.42495608329773,
+      "sha256": "a53a855e376a60288391ce1ded1b4ecc4e829c905dc14e9a110ce993379ebc42",
+      "finite": 12589056,
+      "values": 12589056
+    },
+    "head-trial.pt": {
+      "step": 20,
+      "sha256": "27fdd47b8476c5c6bead106bca3277c99f7de174a8ee9c10ad9e3905c318eba0",
+      "finite": 0,
+      "values": 12589056
+    }
+  }
+}

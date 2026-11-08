@@ -1,0 +1,119 @@
+{
+  "provenance": "Transcribed from the local run logs before Work compute disconnected.",
+  "architecture": "copy_v1",
+  "parameters": 1033003011,
+  "trainable_parameters": 113833984,
+  "trained_transformer_blocks": [
+    19,
+    20
+  ],
+  "other_trainable": [
+    "position",
+    "norm",
+    "output"
+  ],
+  "base_sha256": "a9074f2873dfa38ad3c05d6a41b123aa1c2b56f1acf2216bfaa1dbd36c16e4fc",
+  "corpus_sha256": "b183ba2fd891934dd6aa1155f4068b60c4fd96a1fb958689886575c522d05928",
+  "profile": {
+    "steps": 8,
+    "sequence_length": 128,
+    "micro_batch": 1,
+    "accumulation": 2,
+    "lr": 0.00005,
+    "precision": "fp32",
+    "optimizer": "adamw",
+    "gradient_checkpointing": true,
+    "last_blocks": 2,
+    "objective": "vocabulary",
+    "eval_every": 4,
+    "eval_windows": 8,
+    "save_every": 4,
+    "seed": 20261108
+  },
+  "segments": [
+    [
+      1,
+      4
+    ],
+    [
+      5,
+      8
+    ]
+  ],
+  "hardware": "CPU",
+  "torch": "2.8.0+cpu",
+  "train_tokens": 2048,
+  "tokens_each_language": 1024,
+  "eval_tokens_each_language": 1024,
+  "peak_rss_gib": 7.54,
+  "train_tokens_per_second": 34.7,
+  "overflow_retries": 0,
+  "initial_validation": {
+    "ru": 9.318551540374756,
+    "en": 7.869424998760223
+  },
+  "initial_test": {
+    "ru": 9.108559727668762,
+    "en": 8.028461635112762
+  },
+  "final_test": {
+    "ru": 8.279174447059631,
+    "en": 7.497432708740234
+  },
+  "steps": [
+    {
+      "step": 1,
+      "train_loss": 8.156347036361694,
+      "tokens": 256,
+      "validation": {
+        "ru": 9.23396897315979,
+        "en": 7.768062353134155
+      }
+    },
+    {
+      "step": 2,
+      "train_loss": 9.083727359771729,
+      "tokens": 512
+    },
+    {
+      "step": 3,
+      "train_loss": 8.279033184051514,
+      "tokens": 768
+    },
+    {
+      "step": 4,
+      "train_loss": 8.33717393875122,
+      "tokens": 1024,
+      "validation": {
+        "ru": 8.612255811691284,
+        "en": 7.663756191730499
+      }
+    },
+    {
+      "step": 5,
+      "train_loss": 7.959070444107056,
+      "tokens": 1280
+    },
+    {
+      "step": 6,
+      "train_loss": 8.48924207687378,
+      "tokens": 1536
+    },
+    {
+      "step": 7,
+      "train_loss": 8.02982473373413,
+      "tokens": 1792
+    },
+    {
+      "step": 8,
+      "train_loss": 7.800482511520386,
+      "tokens": 2048,
+      "validation": {
+        "ru": 8.464536905288696,
+        "en": 7.49153196811676
+      }
+    }
+  ],
+  "portable_delta_sha256": "214b8a18b21b882792fadff29f22565fd662b579ec237e4cf1efdc5e47750465",
+  "portable_delta_verified_against_full_state": true
+}

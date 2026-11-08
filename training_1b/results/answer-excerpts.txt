@@ -1,0 +1,36 @@
+Excerpts captured from actual local inference on the original, v2, and CPU-pilot models.
+Full probe definitions are in ../prompts.jsonl. This file lists the outputs preserved in the transcript.
+
+audit/cpu-pilot-answers.json {'regression': {'ru': {'examples': 7, 'exact': 0, 'exact_total': 1}, 'en': {'examples': 7, 'exact': 0, 'exact_total': 1}}, 'holdout': {'ru': {'examples': 6, 'exact': 0, 'exact_total': 3}, 'en': {'examples': 6, 'exact': 0, 'exact_total': 3}}}
+ru-2-plus-2 ['\n that\ninginginginginginginging)\n the тоже the the тоже the тоже тоже theing)']
+en-2-plus-2 [' the одном the theing ( a ak 7 the 7 the l 7 the 7 7 7 7 the инам ']
+ru-story ['ок on\ning)))ing, fer)\n the f, ( f, f-\n ing']
+en-story ['\nr.)))))ing) the f fing\n)\n the 7\n the 7\n ']
+ru-math ['  on the  that  oneting  on ing ive  ive  on  have  on']
+en-math [' and 7, et) : в ){  )ount) ) :\n, the']
+ru-science ['  le  - pandle tolele to le,le: в )lele,']
+en-science ['\n \n \n  (  (  ).    ( ing andingicine the']
+ru-followup ['-ка the\ning ( ( ( (r. (le  ( ak (windwoodic ', ' the u the  — the Fer (wer theicic f the an  — the рач Fic']
+en-followup [' (e (ес (  (  (ing (e (ing (e (r (e (e (or', ' the rer    (e (e (e ( ( (e ( the      ']
+audit/base-answers.json {'regression': {'ru': {'examples': 7, 'exact': 0, 'exact_total': 1}, 'en': {'examples': 7, 'exact': 0, 'exact_total': 1}}, 'holdout': {'ru': {'examples': 6, 'exact': 0, 'exact_total': 3}, 'en': {'examples': 6, 'exact': 0, 'exact_total': 3}}}
+ru-2-plus-2 [',,,,,,,,,,,,,,,,,,,,,,,,']
+en-2-plus-2 [',,,,,,,,,,,,,,,,,,,,,,,,']
+ru-story [',,,,,,,,,,,,,,,,,,,,,,,,']
+en-story [',ом.,,ом,,,,,,,,,,,,,,,,,,']
+ru-math [' with that that тоже with  onle, that with thatingly,S, that with that with theseing for']
+en-math [',,,,,,́,ell,ell,,,,́,,,,,,,,']
+ru-science [',,,,,,,,,,,,,,,,,,,,,,,,']
+en-science ['.,, ф,,,,ell,or can,reeingreerereere,orreeingree']
+ru-followup [',,,,,, these,ь,о,,о,ьо,ь,о,ь,', ',ет over,ьето,о,,,,,,,,,,,ьет,,']
+en-followup [',ете,ile,ileется,ileется,оingree тожеree on.reereereree.re', 'S,\nS, Lailed, rre,re, L, L, ,re, Lo']
+audit/v2-answers.json {'regression': {'ru': {'examples': 7, 'exact': 0, 'exact_total': 1}, 'en': {'examples': 7, 'exact': 0, 'exact_total': 1}}, 'holdout': {'ru': {'examples': 6, 'exact': 0, 'exact_total': 3}, 'en': {'examples': 6, 'exact': 0, 'exact_total': 3}}}
+ru-2-plus-2 [',,,,,,,,,,,,,,,,,,,,,,,,']
+en-2-plus-2 [',,,,,,,,,,,,,,,,,,,,,,,,']
+ru-story [',,,,,,,,,,,,,,,,,,,,,,,,']
+en-story [',ом.,,ом,,,,,,,,,,,,,,,,,,']
+ru-math [' with that that тоже. that тоже with for  only, that withут,омомing, that with on']
+en-math [',,,,,,́,ell,ell,,,,́,,,,,,,,']
+ru-science [',,,,,,,,,,,,,,,,,,,,,,,,']
+en-science ['.,, ф,,,,ell,ree withorreeingreerereere,orreeingree']
+ru-followup [',,,,,,ь,ь,о,,о,ь,,ь,о,ь,', ',,ьет,,,,о,,,,,,,,,,,,,,,']
+en-followup [',ете,ile,ileется,ileется,оingree тожеree on.reereereree.re', 'S,\nS, Lailed, rre,re, L, L, ,re, r,']

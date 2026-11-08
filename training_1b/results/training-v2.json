@@ -1,0 +1,35 @@
+{
+  "provenance": "Google Drive training_history.json and archived Colab output",
+  "device": "Tesla T4",
+  "trained_parameters": 12589056,
+  "train_tokens_reconstructed": {
+    "ru": 98,
+    "en": 95
+  },
+  "history": [
+    {
+      "step": 1,
+      "train_loss": 7.918069839477539,
+      "val_ru": 9.369527816772461,
+      "val_en": 9.49831247329712
+    },
+    {
+      "step": 4,
+      "train_loss": 8.527737617492676,
+      "val_ru": 9.373651027679443,
+      "val_en": 9.492486000061035
+    },
+    {
+      "step": 8,
+      "train_loss": 8.309505462646484,
+      "val_ru": 9.376381874084473,
+      "val_en": 9.482049942016602
+    },
+    {
+      "step": 12,
+      "train_loss": 8.255411148071289,
+      "val_ru": 9.378610134124756,
+      "val_en": 9.471302032470703
+    }
+  ]
+}

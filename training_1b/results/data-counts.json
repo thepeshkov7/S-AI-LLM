@@ -1,0 +1,103 @@
+{
+  "wiki_10m": {
+    "train": {
+      "ru": {
+        "tokens": 5000000,
+        "documents": 4594
+      },
+      "en": {
+        "tokens": 5000000,
+        "documents": 4140
+      }
+    },
+    "validation": {
+      "ru": {
+        "tokens": 125000,
+        "documents": 108
+      },
+      "en": {
+        "tokens": 125000,
+        "documents": 90
+      }
+    },
+    "test": {
+      "ru": {
+        "tokens": 125000,
+        "documents": 108
+      },
+      "en": {
+        "tokens": 125000,
+        "documents": 90
+      }
+    }
+  },
+  "wiki_100m": {
+    "train": {
+      "ru": {
+        "tokens": 50000000,
+        "documents": 46362
+      },
+      "en": {
+        "tokens": 50000000,
+        "documents": 40097
+      }
+    },
+    "validation": {
+      "ru": {
+        "tokens": 1000000,
+        "documents": 879
+      },
+      "en": {
+        "tokens": 1000000,
+        "documents": 767
+      }
+    },
+    "test": {
+      "ru": {
+        "tokens": 1000000,
+        "documents": 960
+      },
+      "en": {
+        "tokens": 1000000,
+        "documents": 751
+      }
+    },
+    "quality_rejected": 53665,
+    "duplicate_rejected": 62,
+    "probe_rejected": 2,
+    "archive_sha256": "70338d4c0ad2b80c5bfe3c6e598a0d0de364c5c18cf9813678656922b770409e"
+  },
+  "instructions": {
+    "train": {
+      "ru": 9869,
+      "en": 15884,
+      "multi_turn": 45
+    },
+    "validation": {
+      "ru": 126,
+      "en": 440,
+      "multi_turn": 5
+    },
+    "test": {
+      "ru": 114,
+      "en": 1167,
+      "multi_turn": 1
+    },
+    "context_rejected": 2226,
+    "probe_rejected": 5
+  },
+  "classic_prose": {
+    "train": {
+      "ru": 4,
+      "en": 5
+    },
+    "validation": {
+      "ru": 1,
+      "en": 1
+    },
+    "test": {
+      "ru": 2,
+      "en": 2
+    }
+  }
+}

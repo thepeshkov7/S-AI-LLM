@@ -1,5 +1,7 @@
 # S AI 0.1 LLM
 
+For S AI LLM 1.0 (1B), see the [bilingual pretraining runbook](training_1b/README.md) and [measured results](training_1b/REPORT.md).
+
 An experimental Russian and English decoder-only Transformer. The model and its byte-level BPE tokenizer start from scratch. Inference loads local PyTorch weights and runs autoregressive token sampling.
 
 The first checkpoint learns to continue literary prose. It has a 96-token context, has no instruction tuning, and is suitable for inference and integration testing. The application still needs a chat-quality checkpoint and end-to-end staging tests before a provider cutover.

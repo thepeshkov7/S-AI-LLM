@@ -163,6 +163,8 @@ def runtime_stats(device):
 def train(corpus, profile, checkpoint, output, device, stop, *, resume=False, require_1b=True):
     if device == "cpu" and (profile.precision != "fp32" or profile.optimizer == "adamw8bit"):
         raise ValueError("CPU requires FP32 and standard AdamW")
+    if device == "cuda" and not torch.cuda.is_available():
+        raise RuntimeError("CUDA is unavailable in this runtime")
     if device == "cuda" and profile.precision == "bf16" and not torch.cuda.is_bf16_supported(including_emulation=False):
         raise ValueError("This GPU has no native BF16 support")
     torch.manual_seed(profile.seed)

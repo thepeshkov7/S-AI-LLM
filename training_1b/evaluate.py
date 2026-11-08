@@ -34,7 +34,7 @@ def evaluate(model, tokenizer, probes, max_tokens, seed, top_k):
             history = formatted + answer + "\n"
         expected = probe.get("expected")
         rows.append({**probe, "answers": replies, "generated_tokens": counts,
-                     "exact": normalized(replies[-1]) == normalized(expected) if expected else None})
+                     "exact": replies[-1].strip().casefold() == expected.casefold() if expected else None})
     return rows
 
 
@@ -44,16 +44,22 @@ def main():
     parser.add_argument("--head", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--device", choices=("cuda", "cpu"), default="cuda")
+    parser.add_argument("--precision", choices=("fp32", "fp16", "bf16"))
     parser.add_argument("--max-tokens", type=int, default=32)
     parser.add_argument("--top-k", type=int, default=1)
     parser.add_argument("--seed", type=int, default=20261108)
     args = parser.parse_args()
     if args.output.exists():
         parser.error("Choose a new output file")
+    if args.max_tokens < 1 or args.top_k < 1:
+        parser.error("Token limit and top-k must be positive")
     torch.set_num_threads(4)
     payload = read_checkpoint(args.checkpoint)
     tokenizer = read_tokenizer(payload)
-    model = build_model(payload, args.device, torch.float16 if args.device == "cuda" else torch.float32)
+    precision = args.precision or ("fp16" if args.device == "cuda" else "fp32")
+    dtype = {"fp32": torch.float32, "fp16": torch.float16, "bf16": torch.bfloat16}[precision]
+    model = build_model(payload, args.device, dtype)
+    del payload
     if args.head:
         load_head(model, read_checkpoint(args.head))
     probes = [json.loads(line) for line in PROBES.read_text(encoding="utf-8").splitlines()]
@@ -67,7 +73,8 @@ def main():
             summary[split][language] = {"examples": len(items), "exact": sum(row["exact"] for row in scorable),
                                         "exact_total": len(scorable)}
     result = {"checkpoint_sha256": digest(args.checkpoint), "head_sha256": digest(args.head) if args.head else None,
-              "probes_sha256": digest(PROBES), "device": args.device, "seed": args.seed, "top_k": args.top_k,
+              "probes_sha256": digest(PROBES), "device": args.device, "precision": precision,
+              "seed": args.seed, "top_k": args.top_k,
               "max_new_tokens": args.max_tokens, "summary": summary, "rows": rows}
     with args.output.open("x", encoding="utf-8") as handle:
         json.dump(result, handle, ensure_ascii=False, indent=2, allow_nan=False)
