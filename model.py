@@ -4,6 +4,7 @@ import math
 import torch
 from torch import nn
 import torch.nn.functional as F
+from torch.utils.checkpoint import checkpoint
 
 
 def mean_answer_loss(losses, rows, batch_size):
@@ -54,6 +55,7 @@ class TinyLLM(nn.Module):
         super().__init__()
         self.config = ModelConfig(vocab_size, width, heads, layers, context)
         self.context = context
+        self.gradient_checkpointing = False
         self.token = nn.Embedding(vocab_size, width)
         self.position = nn.Embedding(context, width)
         self.blocks = nn.Sequential(*(Block(self.config) for _ in range(layers)))
@@ -74,7 +76,15 @@ class TinyLLM(nn.Module):
             raise ValueError("Input must contain between one token and the model context length")
         positions = torch.arange(length, device=ids.device)
         hidden = self.token(ids) + self.position(positions)[None, :, :]
-        return self.norm(self.blocks(hidden))
+        if self.training and self.gradient_checkpointing and torch.is_grad_enabled():
+            for block in self.blocks:
+                if hidden.requires_grad or block.qkv.weight.requires_grad:
+                    hidden = checkpoint(block, hidden, use_reentrant=False)
+                else:
+                    hidden = block(hidden)
+        else:
+            hidden = self.blocks(hidden)
+        return self.norm(hidden)
 
     def forward(self, ids, targets=None):
         logits = self.output(self._encode(ids))
@@ -85,7 +95,7 @@ class TinyLLM(nn.Module):
 
     def vocabulary_loss(self, ids, targets):
         """Next-token loss without the optional dialogue copying head."""
-        logits = self.output(self._encode(ids))
+        logits = self.output(self._encode(ids)).float()
         return F.cross_entropy(logits.flatten(0, 1), targets.flatten())
 
     def answer_loss(self, ids, targets, equal_examples=False):
@@ -136,13 +146,14 @@ class CopyLLM(TinyLLM):
     def _copy_attention(self, query_states, hidden, positions):
         keys = self.copy_key(hidden)
         queries = self.copy_query(query_states)
-        scores = queries @ keys.transpose(-2, -1) / math.sqrt(self.copy_width)
+        with torch.autocast(device_type=hidden.device.type, enabled=False):
+            scores = queries.float() @ keys.float().transpose(-2, -1) / math.sqrt(self.copy_width)
         visible = torch.arange(hidden.size(1), device=hidden.device) <= positions.unsqueeze(-1)
         return scores.masked_fill(~visible, -torch.inf).softmax(dim=-1)
 
     def _mixture(self, states, source_ids, attention):
-        mode = self.copy_mode(states).softmax(dim=-1)
-        probabilities = self.output(states).softmax(dim=-1) * mode[..., :1]
+        mode = self.copy_mode(states).float().softmax(dim=-1)
+        probabilities = self.output(states).float().softmax(dim=-1) * mode[..., :1]
         probabilities = probabilities.scatter_add(-1, source_ids, attention * mode[..., 1:2])
         probabilities = probabilities.scatter_add(-1, self.copy_aliases[source_ids], attention * mode[..., 2:3])
         return probabilities.clamp_min(1e-30).log()
@@ -172,9 +183,9 @@ class CopyLLM(TinyLLM):
         attention = self._copy_attention(hidden, hidden, positions)[rows, ends]
         source = ids[rows]
         target = targets[rows, ends, None]
-        vocab = self.output(states).log_softmax(dim=-1).gather(-1, target)
+        vocab = self.output(states).float().log_softmax(dim=-1).gather(-1, target)
         literal = (attention * (source == target)).sum(dim=-1, keepdim=True)
         alias = (attention * (self.copy_aliases[source] == target)).sum(dim=-1, keepdim=True)
         terms = torch.cat((vocab, literal.clamp_min(1e-30).log(), alias.clamp_min(1e-30).log()), dim=-1)
-        losses = -(terms + self.copy_mode(states).log_softmax(dim=-1)).logsumexp(dim=-1)
+        losses = -(terms + self.copy_mode(states).float().log_softmax(dim=-1)).logsumexp(dim=-1)
         return mean_answer_loss(losses, rows, len(ids)) if equal_examples else losses.mean()

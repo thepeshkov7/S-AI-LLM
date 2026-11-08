@@ -1,0 +1,26 @@
+{"id":"ru-greeting","language":"ru","set":"regression","task":"dialogue","turns":["Привет! Как дела?"]}
+{"id":"en-greeting","language":"en","set":"regression","task":"dialogue","turns":["Hello! How are you?"]}
+{"id":"ru-identity","language":"ru","set":"regression","task":"identity","turns":["Расскажи о себе."]}
+{"id":"en-identity","language":"en","set":"regression","task":"identity","turns":["Tell me about yourself."]}
+{"id":"ru-2-plus-2","language":"ru","set":"regression","task":"arithmetic","turns":["Сколько будет 2 + 2?"],"expected":"4"}
+{"id":"en-2-plus-2","language":"en","set":"regression","task":"arithmetic","turns":["What is 2 + 2?"],"expected":"4"}
+{"id":"ru-sky","language":"ru","set":"regression","task":"science","turns":["Почему небо голубое?"]}
+{"id":"en-sky","language":"en","set":"regression","task":"science","turns":["Why is the sky blue?"]}
+{"id":"ru-internet","language":"ru","set":"regression","task":"explanation","turns":["Объясни, как работает интернет."]}
+{"id":"en-internet","language":"en","set":"regression","task":"explanation","turns":["Explain how the internet works."]}
+{"id":"ru-story","language":"ru","set":"regression","task":"writing","turns":["Напиши короткий рассказ."]}
+{"id":"en-story","language":"en","set":"regression","task":"writing","turns":["Write a short story."]}
+{"id":"ru-help","language":"ru","set":"regression","task":"dialogue","turns":["Что делать, если я не понял объяснение?"]}
+{"id":"en-help","language":"en","set":"regression","task":"dialogue","turns":["Can you explain that more simply?"]}
+{"id":"ru-math","language":"ru","set":"holdout","task":"arithmetic","turns":["На полке лежат 17 тетрадей. Убрали 6 и добавили 4. Сколько тетрадей теперь? Ответь одним числом."],"expected":"15"}
+{"id":"en-math","language":"en","set":"holdout","task":"arithmetic","turns":["A drawer holds 19 badges. You remove 8 and add 3. How many badges are there now? Reply with just the number."],"expected":"14"}
+{"id":"ru-logic","language":"ru","set":"holdout","task":"logic","turns":["Мира пришла раньше Нины, но позже Льва. Кто пришёл первым? Напиши только имя."],"expected":"Лев"}
+{"id":"en-logic","language":"en","set":"holdout","task":"logic","turns":["Mina finished before Jo but after Eli. Who finished first? Reply with just the name."],"expected":"Eli"}
+{"id":"ru-science","language":"ru","set":"holdout","task":"science","turns":["Почему металлическая ложка на кухне кажется холоднее деревянной, хотя обе пролежали рядом всю ночь?"]}
+{"id":"en-science","language":"en","set":"holdout","task":"science","turns":["Why can a metal spoon feel colder than a wooden spoon when both have been on the same table all night?"]}
+{"id":"ru-format","language":"ru","set":"holdout","task":"format","turns":["Верни только два слова через запятую, в исходном порядке. Слова для вывода — рубин и облако."],"expected":"рубин, облако"}
+{"id":"en-format","language":"en","set":"holdout","task":"format","turns":["Return just the two words in the same order, separated by a comma. The words are copper and lantern."],"expected":"copper, lantern"}
+{"id":"ru-followup","language":"ru","set":"holdout","task":"dialogue","turns":["Что означает очередь в приложении для печати? Объясни простыми словами.","Теперь сравни это с очередью в кафе в одном предложении."]}
+{"id":"en-followup","language":"en","set":"holdout","task":"dialogue","turns":["What is a print queue? Explain it in simple terms.","Now compare it to a line at a cafe in one sentence."]}
+{"id":"ru-creative","language":"ru","set":"holdout","task":"writing","turns":["Напиши два коротких предложения про фонарь, который сторожит пустой причал."]}
+{"id":"en-creative","language":"en","set":"holdout","task":"writing","turns":["Write two short sentences about a lantern keeping watch over an empty pier."]}
