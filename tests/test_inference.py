@@ -1,3 +1,4 @@
+from dataclasses import asdict
 import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -9,7 +10,7 @@ import torch
 from torch import nn
 
 from api import app
-from generate import TextGenerator
+from generate import TextGenerator, nucleus_probabilities
 from model import CopyLLM, TinyLLM
 from span_chat import DIVIDE, SUBTRACT_REVERSED, calculate, integer_operands, prepare_prompt, span_value, target_span
 from train import Document, save_checkpoint, train_tokenizer
@@ -53,6 +54,55 @@ class InferenceTest(unittest.TestCase):
             self.assertIsInstance(loaded.model, CopyLLM)
             self.assertEqual(loaded.chat_model, "S AI 0.5 Grounded")
             torch.testing.assert_close(loaded.model.copy_aliases, model.copy_aliases)
+
+    def test_unversioned_copy_checkpoint_loads_strictly(self):
+        tokenizer = train_tokenizer([Document("fixture", "en", "green green red red")], 280)
+        model = CopyLLM(vocab_size=tokenizer.get_vocab_size(), width=16, layers=1, context=8)
+        with TemporaryDirectory() as tmp:
+            checkpoint = Path(tmp) / "step-010000.pt"
+            torch.save({"config": asdict(model.config), "model": model.state_dict(),
+                        "tokenizer": tokenizer.to_str()}, checkpoint)
+            loaded = TextGenerator.load(checkpoint)
+            self.assertIsInstance(loaded.model, CopyLLM)
+            for key, tensor in model.state_dict().items():
+                torch.testing.assert_close(loaded.model.state_dict()[key], tensor)
+
+    def test_generation_blocks_repeated_trigrams_before_top_k(self):
+        model = TinyLLM(width=16, layers=1, context=8).eval()
+        scores = torch.zeros(1, 256)
+        scores[0, ord("A")] = 10
+        scores[0, ord("B")] = 9
+        with patch.object(model, "next_scores", side_effect=lambda _: scores.clone()):
+            text, _ = TextGenerator(model).complete("AAAA", 4, top_k=1, no_repeat_ngram_size=3)
+        self.assertEqual(text, "AAAB")
+
+    def test_nucleus_keeps_crossing_token_and_always_keeps_first(self):
+        probabilities = torch.tensor([0.5, 0.3, 0.2])
+        torch.testing.assert_close(nucleus_probabilities(probabilities, 0.6), torch.tensor([0.5, 0.3, 0.0]))
+        torch.testing.assert_close(nucleus_probabilities(probabilities, 0.2), torch.tensor([0.5, 0.0, 0.0]))
+
+    def test_frequency_penalty_counts_generated_tokens(self):
+        model = TinyLLM(width=16, layers=1, context=8).eval()
+        scores = torch.zeros(1, 256)
+        scores[0, ord("A")] = 10
+        scores[0, ord("B")] = 8.5
+        with patch.object(model, "next_scores", side_effect=lambda _: scores.clone()):
+            output, _ = TextGenerator(model).complete("A", 4, top_k=1, frequency_penalty=1)
+        self.assertEqual(output, "AABA")
+
+    def test_vocab_loss_ignores_masked_targets_under_bf16(self):
+        model = CopyLLM(vocab_size=32, width=16, heads=2, layers=1, context=8)
+        ids = torch.tensor([[1, 2, 3, 4]])
+        targets = torch.tensor([[2, -100, 4, 5]])
+        with torch.autocast("cpu", dtype=torch.bfloat16):
+            logits, _ = TinyLLM.forward(model, ids)
+            loss = model.vocabulary_loss(ids, targets, reduction="sum")
+        reference = torch.nn.functional.cross_entropy(
+            logits[targets != -100].float(), targets[targets != -100], reduction="sum"
+        )
+        torch.testing.assert_close(loss, reference)
+        loss.backward()
+        self.assertTrue(torch.isfinite(model.output.weight.grad).all())
 
     def test_span_decoder_preserves_unseen_words_and_rejects_word_fragments(self):
         tokenizer = train_tokenizer([Document("fixture", "ru", "На столе лежит книга.")], 270)

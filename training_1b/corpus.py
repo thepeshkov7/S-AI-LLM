@@ -17,7 +17,7 @@ from urllib.request import Request, urlopen
 
 import pyarrow.parquet as parquet
 
-from packed_corpus import LANGUAGES, SPLITS, digest
+from packed_corpus import LANGUAGES, SPLITS, digest, valid_document_text
 from prepare_pilot import DATASET_LICENSES, SNAPSHOT, SOURCE_TERMS, normalize
 from train import EOS
 from training_1b.checkpoint import read_checkpoint, read_tokenizer
@@ -29,8 +29,11 @@ WIKI_SHARDS = {"ru": 21, "en": 41}
 ALPHABET = {"ru": re.compile(r"[А-Яа-яЁё]"), "en": re.compile(r"[A-Za-z]")}
 LETTER = re.compile(r"[^\W\d_]")
 WORD = re.compile(r"[^\W\d_]+")
+EXAM_CASES = Path(__file__).with_name("exam_v1.json")
 MIN_ARTICLE_CHARS = 700
 MAX_ARTICLE_CHARS = 28_000
+# Caps are upper bounds. Stop scanning once only a small tail remains.
+CAP_TAIL_TOKENS = 256
 
 
 def download(dataset, revision, remote, local):
@@ -46,9 +49,14 @@ def download(dataset, revision, remote, local):
 
 
 def forbidden_prompts():
-    return {normalized(prompt)
-            for line in PROBES.read_text(encoding="utf-8").splitlines()
-            for prompt in json.loads(line)["turns"]}
+    probes = {normalized(prompt)
+              for line in PROBES.read_text(encoding="utf-8").splitlines() if line
+              for prompt in json.loads(line)["turns"]}
+    for case in json.loads(EXAM_CASES.read_bytes()):
+        probes.add(normalized(case["prompt"]))
+        if case.get("reference"):
+            probes.add(normalized(case["prompt"] + case["reference"]))
+    return probes - {""}
 
 
 def contains_probe(canonical, forbidden):
@@ -71,18 +79,22 @@ def pack_articles(path, language, tokenizer, streams, provenance, seen, caps, fo
     split_counts = {split: Counter(tokens=0, documents=0) for split in SPLITS}
     eos = tokenizer.token_to_id(EOS)
     columns = ("id", "url", "title", "text")
+    def capped(split):
+        cap = caps[split]
+        return bool(cap and cap - split_counts[split]["tokens"] <= min(CAP_TAIL_TOKENS, cap // 20))
+
     for batch in parquet.ParquetFile(path).iter_batches(batch_size=128, columns=columns):
-        if all(cap and split_counts[split]["tokens"] >= cap for split, cap in caps.items()):
+        if all(capped(split) for split in SPLITS):
             break
         accepted = []
         for row in batch.to_pylist():
             stats["examined"] += 1
             article = f"wiki-{language}-{row['id']}"
             split = assignment(article)
-            if caps[split] and split_counts[split]["tokens"] >= caps[split]:
+            if capped(split):
                 continue
             text = normalize(row["text"], MAX_ARTICLE_CHARS)
-            if (len(text) < MIN_ARTICLE_CHARS or EOS in text
+            if (len(text) < MIN_ARTICLE_CHARS or not valid_document_text(text)
                     or len(ALPHABET[language].findall(text)) < 0.85 * len(LETTER.findall(text))):
                 stats["quality_filtered"] += 1
                 continue
@@ -99,18 +111,22 @@ def pack_articles(path, language, tokenizer, streams, provenance, seen, caps, fo
             accepted.append((article, split, row, text, whole, prefix))
         if not accepted:
             continue
-        encodings = tokenizer.encode_batch([item[3] for item in accepted])
+        encodings = tokenizer.encode_batch([item[3] for item in accepted], add_special_tokens=False)
         for item, encoding in zip(accepted, encodings, strict=True):
             article, split, row, _, whole, prefix = item
             counts = split_counts[split]
             available = caps[split] - counts["tokens"] if caps[split] else len(encoding.ids) + 1
-            if available < 1:
+            if not encoding.ids or eos in encoding.ids:
+                stats["quality_filtered"] += 1
+                continue
+            if len(encoding.ids) + 1 > available:
+                stats["cap_filtered"] += 1
                 continue
             inserted = seen.execute("INSERT OR IGNORE INTO documents VALUES (?, ?, ?)", (article, whole, prefix))
             if inserted.rowcount != 1:
                 stats["duplicate_filtered"] += 1
                 continue
-            tokens = array("i", encoding.ids[:available - 1])
+            tokens = array("i", encoding.ids)
             tokens.append(eos)
             tokens.tofile(streams[(split, language)])
             counts["tokens"] += len(tokens)
@@ -118,7 +134,7 @@ def pack_articles(path, language, tokenizer, streams, provenance, seen, caps, fo
             provenance.write(json.dumps({
                 "id": article, "language": language, "split": split, "title": row["title"],
                 "url": row["url"], "normalized_sha256": whole.hex(), "tokens": len(tokens),
-                "truncated": len(tokens) - 1 < len(encoding.ids),
+                "truncated": False,
             }, ensure_ascii=False) + "\n")
         seen.commit()
     return stats, split_counts
@@ -141,12 +157,12 @@ def build(output, cache, tokenizer, shard_count, train_limit):
         source = {
             "dataset": WIKI, "revision": WIKI_REVISION, "snapshot": SNAPSHOT,
             "dataset_license_metadata": DATASET_LICENSES, "article_source_terms": SOURCE_TERMS,
-            "modifications": "Normalized article text, trimmed editorial sections, capped length, tokenized.",
+            "modifications": "Normalized article text, trimmed editorial sections, capped character length, tokenized.",
             "quality": {"max_chars": MAX_ARTICLE_CHARS, "min_chars": MIN_ARTICLE_CHARS,
                         "language_script_share": 0.85, "document_split": "98/1/1 by article ID hash",
                         "deduplication": "Exact normalized document and first 80 normalized words",
                         "probe_filter": "Normalized literal phrase match"},
-            "probes_sha256": digest(PROBES), "shards": [],
+            "probes_sha256": digest(PROBES), "exam_sha256": digest(EXAM_CASES), "shards": [],
         }
         with ExitStack() as stack:
             seen = sqlite3.connect(Path(work) / "dedupe.sqlite")
@@ -164,7 +180,7 @@ def build(output, cache, tokenizer, shard_count, train_limit):
                     name = f"train-{shard:05d}-of-{WIKI_SHARDS[lang]:05d}.parquet"
                     remote = f"{SNAPSHOT}.{lang}/{name}"
                     path = download(WIKI, WIKI_REVISION, remote, cache / f"{lang}-{name}")
-                    caps = {split: ((total * (index + 1)) // len(shards) - (total * index) // len(shards))
+                    caps = {split: ((total * (index + 1)) // len(shards) - totals[split][lang]["tokens"] if total else 0)
                             for split, total in (("train", train_limit), ("validation", holdout_limit),
                                                  ("test", holdout_limit))}
                     counts, splits = pack_articles(path, lang, tokenizer, streams, provenance, seen, caps, forbidden)

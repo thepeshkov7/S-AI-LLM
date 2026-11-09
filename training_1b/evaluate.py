@@ -1,5 +1,6 @@
 """Generate raw CopyLLM answers on bilingual probes without an external model."""
 import argparse
+from dataclasses import asdict
 import json
 from pathlib import Path
 import re
@@ -8,11 +9,10 @@ import torch
 import torch.nn.functional as F
 from torch.nn.utils.rnn import pad_sequence
 
-from generate import format_instruction
-from model import TinyLLM
+from generate import HEADS, format_instruction, resolve_generation_head, validate_tokenizer
 from packed_corpus import digest
 from train import EOS
-from training_1b.checkpoint import build_model, load_head, read_checkpoint, read_tokenizer
+from training_1b.checkpoint import RECOVERY_CONFIG, build_model, load_head, read_checkpoint, read_tokenizer
 
 
 PROBES = Path(__file__).with_name("prompts.jsonl")
@@ -75,7 +75,9 @@ class DecodeCache:
 def generate(model, tokenizer, prompts, seeds, max_tokens, top_k, *, vocabulary_only=False):
     device = model.token.weight.device
     eos = tokenizer.token_to_id(EOS)
-    sequences = [tokenizer.encode(prompt).ids for prompt in prompts]
+    sequences = [tokenizer.encode(prompt, add_special_tokens=not vocabulary_only).ids for prompt in prompts]
+    if any(not ids for ids in sequences):
+        raise ValueError("Every prompt must encode to at least one token")
     generated = [[] for _ in prompts]
     rngs = [torch.Generator(device=device).manual_seed(seed) for seed in seeds]
     live = list(range(len(prompts)))
@@ -91,7 +93,7 @@ def generate(model, tokenizer, prompts, seeds, max_tokens, top_k, *, vocabulary_
             positions = torch.tensor([len(window) - 1 for window in windows], device=device)
             batch = pad_sequence(windows, batch_first=True, padding_value=eos)
             if vocabulary_only:
-                scores = TinyLLM.next_scores(model, batch, positions).float()
+                scores = model.vocabulary_scores(batch, positions).float()
             else:
                 scores = model.next_scores(batch, positions)
         else:
@@ -150,8 +152,10 @@ def main():
     parser.add_argument("--max-tokens", type=int, default=32)
     parser.add_argument("--top-k", type=int, default=1)
     parser.add_argument("--seed", type=int, default=20261108)
-    parser.add_argument("--vocabulary-only", action="store_true",
-                        help="Diagnose the vocabulary projection without copy scores")
+    scoring = parser.add_mutually_exclusive_group()
+    scoring.add_argument("--vocabulary-only", action="store_true",
+                         help="Diagnose the vocabulary projection without copy scores")
+    scoring.add_argument("--scoring", choices=HEADS, default="auto")
     args = parser.parse_args()
     if args.output.exists():
         parser.error("Choose a new output file")
@@ -160,15 +164,19 @@ def main():
     torch.set_num_threads(6)
     payload = read_checkpoint(args.checkpoint)
     tokenizer = read_tokenizer(payload)
+    validate_tokenizer(tokenizer, payload["config"]["vocab_size"])
+    head, head_source = resolve_generation_head(
+        payload, head="vocabulary" if args.vocabulary_only else args.scoring
+    )
     precision = args.precision or ("fp16" if args.device == "cuda" else "fp32")
     dtype = {"fp32": torch.float32, "fp16": torch.float16, "bf16": torch.bfloat16}[precision]
-    model = build_model(payload, args.device, dtype)
+    model = build_model(payload, args.device, dtype, recovery=payload["config"] == asdict(RECOVERY_CONFIG))
     del payload
     if args.head:
         load_head(model, read_checkpoint(args.head))
     probes = [json.loads(line) for line in PROBES.read_text(encoding="utf-8").splitlines()]
     rows = evaluate(model, tokenizer, probes, args.max_tokens, args.seed, args.top_k,
-                    vocabulary_only=args.vocabulary_only)
+                    vocabulary_only=head == "vocabulary")
     summary = {}
     for split in ("regression", "holdout"):
         summary[split] = {}
@@ -179,7 +187,7 @@ def main():
                                         "exact_total": len(scorable)}
     result = {"checkpoint_sha256": digest(args.checkpoint), "head_sha256": digest(args.head) if args.head else None,
               "probes_sha256": digest(PROBES), "device": args.device, "precision": precision,
-              "seed": args.seed, "top_k": args.top_k, "scoring": "vocabulary" if args.vocabulary_only else "copy",
+              "seed": args.seed, "top_k": args.top_k, "scoring": head, "scoring_source": head_source,
               "max_new_tokens": args.max_tokens, "summary": summary, "rows": rows}
     with args.output.open("x", encoding="utf-8") as handle:
         json.dump(result, handle, ensure_ascii=False, indent=2, allow_nan=False)
