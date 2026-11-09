@@ -1,0 +1,20 @@
+{
+  "source": "user_pasted_terminal_output",
+  "checkpoint_step_reported": 10000,
+  "checkpoint_sha256": null,
+  "decoding": null,
+  "reported_score_out_of_100": 0,
+  "notes": "Transcribed from the user submission. The score is reported in the assignment. Checkpoint identity and decoding settings were not independently verified. Use a fresh run with exam.py for matched before/after measurements.",
+  "rows": [
+    {"id": "exam-01", "language": "ru", "prompt": "Привет! Как тебя зовут? Расскажи о себе двумя предложениями.", "raw_answer": "\n«Фелт себе предложить все жизни, он предлож он — как предложив , так как в предложенные так и не только, но кто двумя предложенного, так ивсе, не является, когда-то-то предложенный в истории, некак, предложився, так и то, и не иврован-то, когда-то и не знает из-"},
+    {"id": "exam-02", "language": "ru", "prompt": "Что такое искусственный интеллект? Объясни простыми словами.", "raw_answer": "\nМыша-с-съ- сользовательользовательнымпростком искусственныйпростопостроению -\nМ- с искусственный понтовый остро\nТес-незия — -\nМ. - - тип.\nВ.\n М. - - - -\nМ. - В. -\nМ. О. - - -\nА. -\nШ. -"},
+    {"id": "exam-03", "language": "ru", "prompt": "У Маши было 5 яблок. Она отдала 2 и купила ещё 4. Сколько осталось?", "raw_answer": "\n Ассары и4\n5я яба5\n8 человек 5 : 6 я я 4 .\n3 год\n2 ."},
+    {"id": "exam-04", "language": "ru", "prompt": "Назови ровно три домашних животных.", "raw_answer": "\nГулолез\nЕ\nЛ.\nА. И.\nН. И.\nИ.\nЕ.\nМ.\nГ.\nГ.\nК.\nМ. Е.\nЗ.\nС.\nС.\nА.\nН.\n Е.\nК. М.- А.\n"},
+    {"id": "exam-05", "language": "ru", "prompt": "Почему зимой холоднее, чем летом?", "raw_answer": " Ассент —Асс, Ассон, Асс, Ассара, Н.Нелль\nД льд-А : Эрик, - А. -Асс. : Т.\nРчем ,\nШерий-бул-Д. - Гчем. — С. Н. - - - - - О .\nН. -Е-О"},
+    {"id": "exam-06", "language": "en", "prompt": "Hello! What is your name? Introduce yourself in two sentences.", "raw_answer": " Sello Hello Intriser Intello Intrisro Sris Intello Assello Hello Interer Intro Int Introstris Intro Intello Inter IntrisIntroInt erra Hello Intra Int erro H ris Intello Interroop errroIntris IntrolroIntris Assignro\nMris Intst Introer Int"},
+    {"id": "exam-07", "language": "en", "prompt": "What is the capital of France?", "raw_answer": "AssistantAss andAssyn theAssociativeAsservAsse\nAwards:\n2002 AssistociatedAssocier\n Assist France:Assistry\n2000Assists\n2021:Associ FranceAssistociates\n2005\n2020:Associated\n2020:Assity\nA\n2021\n2015:\n2016:Assist2000\nA\n Us ofAss"},
+    {"id": "exam-08", "language": "en", "prompt": "John has 10 dollars and spends 6. How much is left?", "raw_answer": "Assence spheristant 6–6\nL' L'Herer–10LU iner 10 6–22\nHer–Her–L\nDer 610–6\nH 6–0 6–7\nL'YU/M 10–8 Mer–10\nAlr 6–64\nR errest 2–10 ––10\n"},
+    {"id": "exam-09", "language": "en", "prompt": "Name exactly three colors in English.", "raw_answer": "Assistant SererUser Serererer Sererererer ererererererer ererer threeer erthererererererer erererererererererer Serererererer ererer erererererer ererer ererererererer"},
+    {"id": "exam-10", "language": "en", "prompt": "Why do people need sleep?", "raw_answer": "AssistAssociary:\nFamociistant\nNamoci people:\nAnjjazaryNamAssociazN\nTheFjociamNjadFjamNjamN Anjup\nPamar KundupociP\nGamNK\nKatamAnazamAssenPamN\nKupan\nT"}
+  ]
+}

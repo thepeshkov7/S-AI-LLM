@@ -1,4 +1,8 @@
 from itertools import combinations
+from hashlib import sha256
+import json
+from pathlib import Path
+from tempfile import TemporaryDirectory
 import unittest
 
 import torch
@@ -8,6 +12,7 @@ from generate import TextGenerator, format_instruction
 from instruction_data import build_splits
 from model import TinyLLM
 from train import Document, train_tokenizer
+from tune_bilingual import load_split
 
 
 class InstructionTest(unittest.TestCase):
@@ -39,6 +44,19 @@ class InstructionTest(unittest.TestCase):
             active = output_ids[output_ids != -100].tolist()
             self.assertEqual(tokenizer.decode(active[:-1]).strip(), example.answer)
             self.assertEqual(active[-1], generator.eos)
+
+    def test_reviewed_curriculum_uses_the_same_dialogue_template_as_generation(self):
+        row = {"id": "example", "language": "en", "family": "instruction",
+               "turns": ["Hi!", "Hello!", "What is 2 + 2?", "4"]}
+        raw = json.dumps(row).encode()
+        manifest = {"instruction_format": "user_assistant_v1",
+                    "splits": {"train": {"sha256": sha256(raw).hexdigest()}}}
+        with TemporaryDirectory() as folder:
+            path = Path(folder)
+            (path / "train.jsonl").write_bytes(raw)
+            example, = load_split(path, "train", manifest, None)[("en", "instruction")]
+        self.assertEqual(example.prompt, "User: Hi!\nAssistant: Hello!\n" + format_instruction(row["turns"][2]))
+        self.assertEqual(example.answer, "4")
 
 
 if __name__ == "__main__":

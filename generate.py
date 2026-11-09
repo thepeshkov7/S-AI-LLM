@@ -1,5 +1,6 @@
 """Load a local checkpoint and sample its autoregressive text continuation."""
 import argparse
+from collections import Counter
 import math
 from pathlib import Path
 import sys
@@ -28,6 +29,18 @@ def checkpoint_key(key):
 
 def format_instruction(instruction):
     return f"User: {instruction.strip()}\nAssistant:"
+
+
+def format_dialogue(turns):
+    history = [format_instruction(user) + " " + answer
+               for user, answer in zip(turns[:-1:2], turns[1::2], strict=True)]
+    return "\n".join([*history, format_instruction(turns[-1])])
+
+
+def nucleus_probabilities(probabilities, top_p):
+    # Keep the first token that reaches the threshold, even if it is above top_p alone.
+    remove = probabilities.cumsum(dim=0)[:-1] >= top_p
+    return torch.cat((probabilities[:1], probabilities[1:].masked_fill(remove, 0)))
 
 
 class TextGenerator:
@@ -82,21 +95,29 @@ class TextGenerator:
 
     @torch.inference_mode()
     def complete(self, prompt, max_new_tokens=80, temperature=0.85, top_k=40, seed=None, max_bytes=None,
-                 *, repetition_penalty=None, no_repeat_ngram_size=None):
+                 *, top_p=1.0, repetition_penalty=None, frequency_penalty=0.0, no_repeat_ngram_size=None,
+                 preserve_output=False):
         if not prompt or max_new_tokens < 1 or top_k < 1 or not math.isfinite(temperature) or temperature <= 0:
             raise ValueError("Invalid generation parameters")
+        if not 0 < top_p <= 1 or not math.isfinite(frequency_penalty) or frequency_penalty < 0:
+            raise ValueError("Invalid nucleus or frequency penalty")
         if repetition_penalty is None:
             repetition_penalty = 1.2 if self.vocabulary_only else 1.0
         if no_repeat_ngram_size is None:
             no_repeat_ngram_size = 3 if self.vocabulary_only else 0
         if not math.isfinite(repetition_penalty) or repetition_penalty < 1 or no_repeat_ngram_size < 0:
             raise ValueError("Invalid repetition controls")
-        ids = self.tokenizer.encode(prompt).ids if self.tokenizer else list(prompt.encode("utf-8"))
+        if self.tokenizer:
+            ids = (self.tokenizer.encode(prompt, add_special_tokens=False) if self.vocabulary_only
+                   else self.tokenizer.encode(prompt)).ids
+        else:
+            ids = list(prompt.encode("utf-8"))
         if not ids:
             raise ValueError("Prompt must encode to at least one token")
         device = self.model.token.weight.device
         generator = torch.Generator(device=device).manual_seed(seed) if seed is not None else None
         output = []
+        counts = Counter()
         score_tokens = self.model.vocabulary_scores if self.vocabulary_only else self.model.next_scores
         ngrams = {}
         prefix_length = max(0, no_repeat_ngram_size - 1)
@@ -105,6 +126,9 @@ class TextGenerator:
             scores = score_tokens(recent)[0].float()
             if repetition_penalty > 1 and output:
                 scores[list(set(output[-128:]))] -= math.log(repetition_penalty)
+            if counts:
+                tokens, frequencies = zip(*counts.items())
+                scores[list(tokens)] -= scores.new_tensor(frequencies) * frequency_penalty
             prefix = tuple(output[-prefix_length:]) if prefix_length else ()
             blocked = ngrams.get(prefix)
             if blocked:
@@ -113,7 +137,10 @@ class TextGenerator:
                 scores[list(blocked)] = -torch.inf
             values, indices = scores.topk(min(top_k, scores.size(-1)))
             values = (values - values[0]) / temperature
-            selected = torch.multinomial(values.softmax(dim=0), 1, generator=generator)
+            probabilities = values.softmax(dim=0)
+            if top_p < 1:
+                probabilities = nucleus_probabilities(probabilities, top_p)
+            selected = torch.multinomial(probabilities, 1, generator=generator)
             token = indices[selected].item()
             if token == self.eos:
                 break
@@ -121,8 +148,12 @@ class TextGenerator:
                 ngrams.setdefault(prefix, set()).add(token)
             ids.append(token)
             output.append(token)
+            if frequency_penalty:
+                counts[token] += 1
         if self.tokenizer:
-            completion = self.tokenizer.decode(output).rstrip("\ufffd")
+            completion = self.tokenizer.decode(output, skip_special_tokens=not preserve_output)
+            if not preserve_output:
+                completion = completion.rstrip("\ufffd")
         else:
             completion = bytes(output).decode("utf-8", errors="replace")
         if max_bytes is not None:
@@ -142,8 +173,10 @@ def main():
     parser.add_argument("--seed", type=int)
     parser.add_argument("--temperature", type=float, default=0.85)
     parser.add_argument("--top-k", type=int, default=40)
+    parser.add_argument("--top-p", type=float, default=1.0)
     parser.add_argument("--device", choices=("cpu", "cuda"), default="cpu")
     parser.add_argument("--repetition-penalty", type=float)
+    parser.add_argument("--frequency-penalty", type=float, default=0.0)
     parser.add_argument("--no-repeat-ngram-size", type=int)
     parser.add_argument("--threads", type=int, default=2)
     args = parser.parse_args()
@@ -159,9 +192,10 @@ def main():
         prompt_text = format_instruction(args.instruction)
     completion, _ = generator.complete(
         prompt_text, limit or 80, args.temperature, args.top_k, args.seed, args.max_new_bytes,
-        repetition_penalty=args.repetition_penalty, no_repeat_ngram_size=args.no_repeat_ngram_size,
+        top_p=args.top_p, repetition_penalty=args.repetition_penalty, frequency_penalty=args.frequency_penalty,
+        no_repeat_ngram_size=args.no_repeat_ngram_size,
     )
-    print(completion.strip() if args.instruction is not None else prompt_text + completion)
+    print(completion.split("\nUser:", 1)[0].strip() if args.instruction is not None else prompt_text + completion)
 
 
 if __name__ == "__main__":

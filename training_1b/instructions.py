@@ -9,13 +9,13 @@ from tempfile import TemporaryDirectory
 
 import pyarrow.parquet as parquet
 
-from generate import format_instruction
+from generate import format_dialogue
 from instruction_data import build_splits
 from packed_corpus import LANGUAGES, SPLITS, digest
 from prepare_oasst import dialogue, load_messages
 from train import EOS
-from training_1b.checkpoint import CONFIG, read_checkpoint, read_tokenizer
-from training_1b.corpus import contains_probe, download, forbidden_prompts
+from training_1b.checkpoint import read_checkpoint, read_tokenizer
+from training_1b.corpus import EXAM_CASES, contains_probe, download, forbidden_prompts
 from training_1b.evaluate import normalized
 
 OASST = "OpenAssistant/oasst2"
@@ -32,7 +32,7 @@ def split_for(group):
 
 def sample(identifier, group, language, source, turns, split):
     return {"id": identifier, "group": group, "language": language, "source": source,
-            "turns": turns, "split": split}
+            "turns": turns, "split": split, "family": "instruction"}
 
 
 def openassistant(path):
@@ -100,14 +100,11 @@ def arithmetic():
 
 
 def token_length(tokenizer, turns):
-    prompt = "\n".join(format_instruction(user) + " " + answer for user, answer in
-                       zip(turns[:-2:2], turns[1:-2:2], strict=True))
-    query = format_instruction(turns[-2])
-    prompt = prompt + "\n" + query if prompt else query
+    prompt = format_dialogue(turns[:-1])
     return len(tokenizer.encode(prompt).ids) + len(tokenizer.encode(" " + turns[-1]).ids)
 
 
-def build(output, cache, tokenizer):
+def build(output, cache, tokenizer, context=256):
     if output.exists():
         raise FileExistsError(f"Choose a new dataset output: {output}")
     assistant = download(OASST, OASST_REVISION, "2023-11-05_oasst2_ready.messages.jsonl.gz",
@@ -133,7 +130,7 @@ def build(output, cache, tokenizer):
         elif (row["id"] in identities or tuple(map(normalized, turns)) in examples
               or groups.get(group, split) != split or any(prompts.get(query, split) != split for query in queries)):
             rejected["duplicate_or_cross_split"] += 1
-        elif token_length(tokenizer, turns) > CONFIG.context:
+        elif token_length(tokenizer, turns) > context:
             rejected["context"] += 1
         else:
             groups[group] = split
@@ -142,8 +139,11 @@ def build(output, cache, tokenizer):
             identities.add(row["id"])
             selected[split].append(row)
     manifest = {
-        "format_version": 1, "context": CONFIG.context, "rejected": rejected,
+        "format_version": 1, "context": context, "rejected": rejected,
+        "instruction_format": "user_assistant_v1", "sampling_weights": {"instruction": 1},
+        "tokenizer_sha256": sha256(tokenizer.to_str().encode()).hexdigest(),
         "probes_sha256": digest(Path(__file__).with_name("prompts.jsonl")),
+        "exam_sha256": digest(EXAM_CASES),
         "sources": {
             "oasst2": {"url": f"https://huggingface.co/datasets/{OASST}/tree/{OASST_REVISION}",
                        "license": "Apache-2.0", "sha256": digest(assistant)},
@@ -184,8 +184,11 @@ def main():
     parser.add_argument("--cache", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
-    tokenizer = read_tokenizer(read_checkpoint(args.checkpoint))
-    print(json.dumps(build(args.output, args.cache, tokenizer), indent=2))
+    checkpoint = read_checkpoint(args.checkpoint)
+    tokenizer = read_tokenizer(checkpoint)
+    context = checkpoint["config"]["context"]
+    del checkpoint
+    print(json.dumps(build(args.output, args.cache, tokenizer, context), indent=2))
 
 
 if __name__ == "__main__":

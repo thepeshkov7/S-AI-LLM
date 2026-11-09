@@ -15,6 +15,8 @@ from train import EOS
 
 CONFIG = ModelConfig(vocab_size=6144, width=2048, heads=16, layers=20, context=256)
 PARAMETERS = 1_033_003_011
+RECOVERY_CONFIG = ModelConfig(vocab_size=65536, width=2048, heads=16, layers=20, context=256)
+RECOVERY_PARAMETERS = 1_276_332_035
 
 
 def read_checkpoint(path):
@@ -34,13 +36,15 @@ def build_model(payload, device, dtype=torch.float32, *, require_1b=True, recove
     config = ModelConfig(**payload["config"])
     if checkpoint_architecture(payload) != CopyLLM.architecture:
         raise ValueError("Expected a CopyLLM checkpoint")
+    if recovery and config != RECOVERY_CONFIG:
+        raise ValueError("Expected the original S AI 1.276B CopyLLM configuration")
     if require_1b and not recovery and config != CONFIG:
         raise ValueError("Expected a checkpoint of the original 1B copy_v1 model")
     with torch.device("meta"):
         model = CopyLLM(**asdict(config))
     parameters = sum(p.numel() for p in model.parameters())
-    if recovery and (config.vocab_size != 65536 or not 1_275_000_000 <= parameters <= 1_278_000_000):
-        raise ValueError("Expected the 65,536-token S AI 1.276B CopyLLM configuration")
+    if recovery and parameters != RECOVERY_PARAMETERS:
+        raise ValueError("Unexpected S AI 1.276B parameter count")
     if require_1b and not recovery and parameters != PARAMETERS:
         raise ValueError("Unexpected 1B parameter count")
     model.load_state_dict(payload["model"], strict=True, assign=True)

@@ -98,10 +98,10 @@ class TinyLLM(nn.Module):
             loss = F.cross_entropy(logits.flatten(0, 1), targets.flatten(), ignore_index=-100)
         return logits, loss
 
-    def vocabulary_loss(self, ids, targets):
+    def vocabulary_loss(self, ids, targets, *, reduction="mean"):
         """Next-token loss without the optional dialogue copying head."""
         logits = self.output(self._encode(ids)).float()
-        return F.cross_entropy(logits.flatten(0, 1), targets.flatten())
+        return F.cross_entropy(logits.flatten(0, 1), targets.flatten(), ignore_index=-100, reduction=reduction)
 
     def answer_loss(self, ids, targets, equal_examples=False):
         """Compute the language-model loss only at supervised target positions."""

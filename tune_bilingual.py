@@ -2,7 +2,9 @@
 
 import argparse
 from collections import Counter, defaultdict
+from contextlib import nullcontext
 from dataclasses import asdict
+from hashlib import sha256
 import json
 import math
 from pathlib import Path
@@ -15,7 +17,8 @@ from filelock import FileLock, Timeout
 from evaluate_assistant import score
 from evaluate_chat import completions
 from finetune import instruction_tensors
-from generate import TextGenerator
+from generate import TextGenerator, format_dialogue
+from instruction_data import Example
 from model import CopyLLM
 from packed_corpus import LANGUAGES, SPLITS, PackedCorpus, digest
 from prepare_bilingual import source_rows
@@ -39,7 +42,11 @@ WEIGHTS = {
 def load_split(folder, split, manifest, generator):
     buckets = defaultdict(list)
     for row in source_rows(folder, split, manifest):
-        example = dialogue_example(row, generator)
+        if manifest.get("instruction_format") == "user_assistant_v1":
+            turns = row["turns"]
+            example = Example(row["id"], "prefixed_chat", row["language"], format_dialogue(turns[:-1]), turns[-1])
+        else:
+            example = dialogue_example(row, generator)
         if example is not None:
             buckets[(example.language, row["family"])].append(example)
     return buckets
@@ -105,6 +112,16 @@ def train(args):
     torch.manual_seed(381)
     random_source = random.Random(382)
     sampler = torch.Generator().manual_seed(383)
+    manifest_path = args.curriculum / "manifest.json"
+    manifest = json.loads(manifest_path.read_bytes())
+    instruction_format = manifest.get("instruction_format")
+    if instruction_format is not None and instruction_format != "user_assistant_v1":
+        raise ValueError("Unsupported instruction curriculum format")
+    if instruction_format and not args.reviewed_base_prose:
+        raise ValueError("Review held-out prose in both languages before starting this instruction stage")
+    if args.bf16 and (args.device != "cuda" or not torch.cuda.is_bf16_supported(including_emulation=False)):
+        raise ValueError("--bf16 requires native CUDA BF16")
+    autocast = (lambda: torch.autocast("cuda", dtype=torch.bfloat16, cache_enabled=False)) if args.bf16 else nullcontext
     generator = TextGenerator.load(args.base, args.device)
     if generator.tokenizer is None:
         raise ValueError("Bilingual tuning requires a BPE checkpoint")
@@ -116,12 +133,16 @@ def train(args):
         model.set_copy_aliases(generator.tokenizer)
         generator.model = model.to(args.device)
     model = generator.model
+    if instruction_format and (
+        manifest["tokenizer_sha256"] != sha256(generator.tokenizer.to_str().encode()).hexdigest()
+        or manifest["context"] != model.context
+    ):
+        raise ValueError("The instruction curriculum requires the tokenizer and context of its base checkpoint")
+    model.gradient_checkpointing = args.gradient_checkpointing
     replay = PackedCorpus(args.replay_corpus) if args.replay_corpus is not None else None
     if replay is not None and replay.tokenizer.to_str() != generator.tokenizer.to_str():
         raise ValueError("Replay and instruction data must use the same checkpoint vocabulary")
     replay_context = min(128, model.context)
-    manifest_path = args.curriculum / "manifest.json"
-    manifest = json.loads(manifest_path.read_bytes())
     weights = manifest.get("sampling_weights", WEIGHTS)
     selection = manifest.get("selection_weights", {})
     if not weights or any(type(weight) is not int or weight < 1 for weight in [*weights.values(), *selection.values()]):
@@ -135,7 +156,7 @@ def train(args):
     del examples
     counts = {split: {f"{lang}:{family}": len(inputs) for (lang, family), (inputs, _) in group.items()}
               for split, group in tensors.items()}
-    optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate, fused=True if args.bf16 else None)
     settings = {
         "base_sha256": digest(args.base), "curriculum_sha256": digest(manifest_path),
         "steps": args.steps, "batch_size": args.batch_size, "learning_rate": args.learning_rate,
@@ -152,6 +173,10 @@ def train(args):
         settings["equal_example_loss"] = True
     if args.generation_checks:
         settings["generation_checks_per_group"] = args.generation_checks
+    if args.bf16:
+        settings["bf16"] = True
+    if args.gradient_checkpointing:
+        settings["gradient_checkpointing"] = True
     state_path = args.output.with_suffix(".training-state.pt")
     if state_path.exists() != args.resume:
         raise ValueError("Use --resume exactly when the training state exists")
@@ -174,7 +199,8 @@ def train(args):
         del state
         print(json.dumps({"resumed_from": first_step - 1}), flush=True)
     else:
-        baseline = best = validate_candidate(generator, tensors["validation"], args.batch_size, selection, samples)
+        with autocast():
+            baseline = best = validate_candidate(generator, tensors["validation"], args.batch_size, selection, samples)
         print(json.dumps({"step": 0, **settings, "validation_before": baseline}), flush=True)
     stop = args.stop_after or args.steps
     if stop < first_step and not (first_step == args.steps + 1 and stop == args.steps):
@@ -188,14 +214,16 @@ def train(args):
             group["lr"] = learning_rate(step, args.steps, args.learning_rate)
         if replay is not None and step % args.replay_every == 0:
             x, y = replay.batch(4, replay_context, sampler, args.device)
-            loss = model.vocabulary_loss(x, y)
+            with autocast():
+                loss = model.vocabulary_loss(x, y)
             tokens["prose"].update({lang: 2 * replay_context for lang in LANGUAGES})
         else:
             draws = random_source.choices(tuple(weights), weights=tuple(weights.values()),
                                           k=examples_per_language if args.mix_families else 1)
             families = Counter(draws) if args.mix_families else {draws[0]: examples_per_language}
             (x, y), inputs, answers = instruction_batch(tensors["train"], families, sampler)
-            loss = model.answer_loss(x.to(args.device), y.to(args.device), equal_examples=args.equal_example_loss)
+            with autocast():
+                loss = model.answer_loss(x.to(args.device), y.to(args.device), equal_examples=args.equal_example_loss)
             tokens["inputs"].update(inputs)
             tokens["answers"].update(answers)
         loss.backward()
@@ -207,7 +235,8 @@ def train(args):
         elapsed = round(elapsed_before + monotonic() - started, 2)
         token_counts = {kind: dict(counts) for kind, counts in tokens.items()}
         if on_eval:
-            metrics = validate_candidate(generator, tensors["validation"], args.batch_size, selection, samples)
+            with autocast():
+                metrics = validate_candidate(generator, tensors["validation"], args.batch_size, selection, samples)
             if selection_key(metrics) > selection_key(best):
                 best, best_step = metrics, step
                 save_checkpoint(args.output, model, generator.tokenizer, {
@@ -227,7 +256,8 @@ def train(args):
     if best_step == 0:
         raise RuntimeError("No trained checkpoint improved the validation selection metric")
     model.load_state_dict(torch.load(args.output, map_location="cpu", weights_only=True)["model"])
-    test = measure(model, tensors["test"], args.batch_size, selection)
+    with autocast():
+        test = measure(model, tensors["test"], args.batch_size, selection)
     print(json.dumps({"finished": True, "completed_steps": args.steps, "selected_step": best_step, "test": test,
                       "token_counts": {kind: dict(counts) for kind, counts in tokens.items()},
                       "seconds": round(elapsed_before + monotonic() - started, 2)}), flush=True)
@@ -250,6 +280,9 @@ def main():
     parser.add_argument("--replay-every", type=int, default=5)
     parser.add_argument("--chat-model")
     parser.add_argument("--equal-example-loss", action="store_true")
+    parser.add_argument("--reviewed-base-prose", action="store_true")
+    parser.add_argument("--bf16", action="store_true")
+    parser.add_argument("--gradient-checkpointing", action="store_true")
     parser.add_argument("--generation-checks", type=int, default=0, help="Validate this many short generations per family and language")
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--stop-after", type=int)

@@ -12,6 +12,7 @@
   "last_blocks": 20,
   "objective": "vocabulary",
   "one_pass": true,
+  "mask_document_transitions": true,
   "eval_every": 256,
   "eval_windows": 8,
   "save_every": 32,

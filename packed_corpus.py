@@ -7,8 +7,10 @@ from hashlib import file_digest, sha256
 from itertools import islice
 import json
 from pathlib import Path
+import re
 import sys
 from tempfile import TemporaryDirectory
+from unicodedata import normalize
 
 import torch
 from tokenizers import Tokenizer
@@ -18,11 +20,16 @@ from train import Document, EOS, train_tokenizer
 
 LANGUAGES = ("ru", "en")
 SPLITS = ("train", "validation", "test")
+BROKEN_TEXT = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f\ud800-\udfff\ufffd]")
 
 
 def digest(path):
     with path.open("rb") as handle:
         return file_digest(handle, "sha256").hexdigest()
+
+
+def valid_document_text(text):
+    return isinstance(text, str) and bool(text.strip()) and EOS not in text and not BROKEN_TEXT.search(text)
 
 
 def documents(path):
@@ -31,7 +38,8 @@ def documents(path):
             if not line.strip():
                 continue
             row = Document(**json.loads(line))
-            if not row.id or row.language not in LANGUAGES or not row.text.strip():
+            if (not isinstance(row.id, str) or not row.id.strip()
+                    or row.language not in LANGUAGES or not valid_document_text(row.text)):
                 raise ValueError(f"Invalid document in {path}")
             yield row
 
@@ -55,9 +63,11 @@ def pack_split(sources, output, split, tokenizer, seen_ids, seen_hashes):
         streams = {"ru": russian, "en": english}
         rows = (doc for source in sources for doc in documents(source))
         while batch := list(islice(rows, 64)):
-            encoded = tokenizer.encode_batch([row.text for row in batch])
+            encoded = tokenizer.encode_batch([row.text for row in batch], add_special_tokens=False)
             for doc, sequence in zip(batch, encoded, strict=True):
-                fingerprint = sha256(" ".join(doc.text.split()).encode()).digest()
+                if not sequence.ids or eos in sequence.ids:
+                    raise ValueError(f"Invalid document token sequence: {doc.id}")
+                fingerprint = sha256(" ".join(normalize("NFC", doc.text).split()).encode()).digest()
                 if doc.id in seen_ids or fingerprint in seen_hashes:
                     raise ValueError(f"Duplicate document: {doc.id}")
                 seen_ids.add(doc.id)
@@ -108,8 +118,36 @@ def pack(sources, output, vocab_size, tokenizer_docs, tokenizer_from=None):
     return manifest
 
 
+def document_hashes(path, eos, vocab_size, document_count):
+    """Check and hash complete token documents with bounded read buffers."""
+    count, pending = 0, False
+    fingerprint = sha256()
+    with path.open("rb") as stream:
+        while chunk := bytearray(stream.read(4 * 2**20)):
+            tokens = torch.frombuffer(chunk, dtype=torch.int32)
+            lo, hi = torch.aminmax(tokens)
+            if lo.item() < 0 or hi.item() >= vocab_size:
+                raise ValueError(f"Token ID outside the checkpoint vocabulary: {path}")
+            raw = memoryview(chunk)
+            start = 0
+            for index in (tokens == eos).nonzero(as_tuple=True)[0].tolist():
+                end = index * 4
+                if end == start and not pending:
+                    raise ValueError(f"Empty document or unexpected EOS: {path}")
+                fingerprint.update(raw[start:end])
+                yield fingerprint.digest()
+                count += 1
+                fingerprint, pending = sha256(), False
+                start = end + 4
+            if start < len(raw):
+                fingerprint.update(raw[start:])
+                pending = True
+    if pending or count != document_count:
+        raise ValueError(f"Document count or final EOS does not match the manifest: {path}")
+
+
 class PackedCorpus:
-    def __init__(self, directory):
+    def __init__(self, directory, *, verify_documents=False):
         manifest = directory / "manifest.json"
         self.manifest = json.loads(manifest.read_bytes())
         self.fingerprint = digest(manifest)
@@ -117,6 +155,9 @@ class PackedCorpus:
         if self.manifest["format_version"] != 1 or digest(tokenizer) != self.manifest["tokenizer_sha256"]:
             raise ValueError("Invalid packed corpus manifest or tokenizer")
         self.tokenizer = Tokenizer.from_file(str(tokenizer))
+        self.eos = self.tokenizer.token_to_id(EOS)
+        if self.eos is None:
+            raise ValueError("The packed corpus tokenizer is missing EOS")
         self.splits = {}
         for split in SPLITS:
             self.splits[split] = {}
@@ -124,9 +165,21 @@ class PackedCorpus:
                 info = self.manifest["splits"][split][lang]
                 path = directory / f"{split}.{lang}.bin"
                 size = info["tokens"]
-                if path.stat().st_size != size * 4 or digest(path) != info["sha256"]:
+                if size < 1 or path.stat().st_size != size * 4 or digest(path) != info["sha256"]:
                     raise ValueError(f"Packed token stream does not match its manifest: {path}")
                 self.splits[split][lang] = torch.from_file(str(path), shared=False, size=size, dtype=torch.int32)
+        if verify_documents:
+            held_out = {}
+            for split in ("validation", "test", "train"):
+                for lang in LANGUAGES:
+                    path = directory / f"{split}.{lang}.bin"
+                    count = self.manifest["splits"][split][lang]["documents"]
+                    for fingerprint in document_hashes(path, self.eos, self.tokenizer.get_vocab_size(), count):
+                        previous = held_out.get(fingerprint)
+                        if previous is not None and previous != split:
+                            raise ValueError(f"Document overlaps {previous} and {split}: {path}")
+                        if split != "train":
+                            held_out[fingerprint] = split
 
     def batch(self, size, context, random_source, device):
         ranges = torch.arange(context + 1)
