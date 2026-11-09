@@ -91,8 +91,11 @@ class TinyLLM(nn.Module):
             hidden = self.blocks(hidden)
         return self.norm(hidden)
 
+    def vocabulary_logits(self, ids):
+        return self.output(self._encode(ids))
+
     def forward(self, ids, targets=None):
-        logits = self.output(self._encode(ids))
+        logits = self.vocabulary_logits(ids)
         loss = None
         if targets is not None:
             loss = F.cross_entropy(logits.flatten(0, 1), targets.flatten(), ignore_index=-100)
@@ -100,7 +103,7 @@ class TinyLLM(nn.Module):
 
     def vocabulary_loss(self, ids, targets, *, reduction="mean"):
         """Next-token loss without the optional dialogue copying head."""
-        logits = self.output(self._encode(ids)).float()
+        logits = self.vocabulary_logits(ids).float()
         return F.cross_entropy(logits.flatten(0, 1), targets.flatten(), ignore_index=-100, reduction=reduction)
 
     def answer_loss(self, ids, targets, equal_examples=False):

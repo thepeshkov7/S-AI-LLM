@@ -36,8 +36,7 @@ def completions(generator, prompts, max_new_tokens, batch_size):
     model = generator.model
     device = model.token.weight.device
     for start in range(0, len(prompts), batch_size):
-        encoded = tokenizer.encode_batch(prompts[start:start + batch_size])
-        contexts = [item.ids[-model.context:] for item in encoded]
+        contexts = [generator.encode_prompt(prompt)[-model.context:] for prompt in prompts[start:start + batch_size]]
         outputs = [[] for _ in contexts]
         active = list(range(len(contexts)))
         for _ in range(max_new_tokens):
@@ -49,7 +48,7 @@ def completions(generator, prompts, max_new_tokens, batch_size):
                 [row + [generator.eos] * (width - len(row)) for row in ids], device=device,
             )
             last = torch.tensor([len(row) - 1 for row in ids], device=device)
-            next_ids = model.next_scores(inputs, last).argmax(dim=-1).tolist()
+            next_ids = generator.next_scores(inputs, last).argmax(dim=-1).tolist()
             remaining = []
             for i, token in zip(active, next_ids):
                 if token != generator.eos:

@@ -9,7 +9,7 @@ import unicodedata
 
 import torch
 
-from generate import TextGenerator, format_instruction
+from generate import HEADS, TextGenerator, format_instruction
 from packed_corpus import digest
 
 
@@ -57,7 +57,7 @@ def prose_loss(generator, text, device):
     return {"mean_nll": total_nll / count, "target_tokens": count}
 
 
-def run_cases(generator, cases, suite, device):
+def run_cases(generator, cases, suite, device, settings=SETTINGS):
     rows = []
     for index, case in enumerate(cases):
         if suite != "all" and case["suite"] != suite:
@@ -65,7 +65,7 @@ def run_cases(generator, cases, suite, device):
         prose = case["suite"] == "prose"
         prompt = case["prompt"] if prose else format_instruction(case["prompt"])
         seed = BASE_SEED + index
-        answer, count = generator.complete(prompt, seed=seed, preserve_output=True, **SETTINGS)
+        answer, count = generator.complete(prompt, seed=seed, preserve_output=True, **settings)
         expected = case.get("exact_answers")
         exact = None if expected is None else normalize_answer(answer) in set(map(normalize_answer, expected))
         rows.append({
@@ -129,6 +129,8 @@ def main():
     parser.add_argument("--output", type=Path)
     parser.add_argument("--suite", choices=("all", *SUITES), default="all")
     parser.add_argument("--device", choices=("cuda", "cpu"), default="cpu")
+    parser.add_argument("--head", choices=HEADS, default="auto")
+    parser.add_argument("--greedy", action="store_true", help="Use unmodified argmax instead of the fixed sampling policy")
     args = parser.parse_args()
     if args.summarize is not None:
         report = json.loads(args.summarize.read_text(encoding="utf-8"))
@@ -140,10 +142,14 @@ def main():
     torch.set_num_threads(4)
     cases = json.loads(FIXTURE.read_text(encoding="utf-8"))
     checkpoint_sha256 = digest(args.checkpoint)
-    generator = TextGenerator.load(args.checkpoint, args.device)
+    generator = TextGenerator.load(args.checkpoint, args.device, head=args.head)
     if generator.tokenizer is None and args.suite in ("all", "prose"):
         parser.error("Held-out prose requires the model tokenizer in the checkpoint")
-    rows = run_cases(generator, cases, args.suite, args.device)
+    settings = SETTINGS if not args.greedy else {
+        **SETTINGS, "top_k": 1, "top_p": 1.0, "repetition_penalty": 1.0,
+        "frequency_penalty": 0.0, "no_repeat_ngram_size": 0,
+    }
+    rows = run_cases(generator, cases, args.suite, args.device, settings)
     summary = summarize(rows)
     report = {
         "source": "generated_from_checkpoint",
@@ -154,7 +160,8 @@ def main():
         "gpu": torch.cuda.get_device_name() if args.device == "cuda" else None,
         "dtype": str(generator.model.token.weight.dtype),
         "generation_head": "vocabulary" if generator.vocabulary_only else "checkpoint_default",
-        "decoding": SETTINGS, "human_review_rubric": RUBRIC, "summary": summary, "rows": rows,
+        "head_source": generator.head_source,
+        "decoding": settings, "human_review_rubric": RUBRIC, "summary": summary, "rows": rows,
     }
     with args.output.open("x", encoding="utf-8") as handle:
         json.dump(report, handle, ensure_ascii=False, indent=2, allow_nan=False)
