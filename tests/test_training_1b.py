@@ -12,7 +12,7 @@ from packed_corpus import PackedCorpus, SPLITS, pack
 from train import save_checkpoint
 from training_1b.checkpoint import read_checkpoint
 from training_1b.evaluate import DecodeCache
-from training_1b.pretrain import Profile, train
+from training_1b.pretrain import Profile, one_pass_windows, train
 
 
 class CopyTrainingTests(unittest.TestCase):
@@ -65,10 +65,16 @@ class CopyTrainingTests(unittest.TestCase):
             base = root / "base.pt"
             save_checkpoint(base, model, corpus.tokenizer, {})
             profile = Profile(steps=4, sequence_length=16, last_blocks=1, precision="fp32",
-                              optimizer="adamw", accumulation=2, eval_every=2, eval_windows=2, save_every=2)
+                              optimizer="adamw", accumulation=2, eval_every=2, eval_windows=2, save_every=2,
+                              one_pass=True)
+            for starts in one_pass_windows(corpus, profile).values():
+                self.assertEqual(len(starts), 4)
+                self.assertTrue((starts.sort().values.diff() >= profile.sequence_length).all())
             whole, partial = root / "whole", root / "partial"
+            with self.assertRaisesRegex(ValueError, "exceed --max-session-tokens"):
+                train(corpus, profile, base, partial, "cpu", 2, require_1b=False, max_session_tokens=63)
             train(corpus, profile, base, whole, "cpu", 4, require_1b=False)
-            train(corpus, profile, base, partial, "cpu", 2, require_1b=False)
+            train(corpus, profile, base, partial, "cpu", 2, require_1b=False, max_session_tokens=64)
             train(corpus, profile, partial / "training-state.pt", partial, "cpu", 4, resume=True, require_1b=False)
             left = read_checkpoint(whole / "training-state.pt")
             right = read_checkpoint(partial / "training-state.pt")

@@ -1,3 +1,4 @@
+from dataclasses import asdict
 import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -53,6 +54,27 @@ class InferenceTest(unittest.TestCase):
             self.assertIsInstance(loaded.model, CopyLLM)
             self.assertEqual(loaded.chat_model, "S AI 0.5 Grounded")
             torch.testing.assert_close(loaded.model.copy_aliases, model.copy_aliases)
+
+    def test_unversioned_copy_checkpoint_loads_strictly(self):
+        tokenizer = train_tokenizer([Document("fixture", "en", "green green red red")], 280)
+        model = CopyLLM(vocab_size=tokenizer.get_vocab_size(), width=16, layers=1, context=8)
+        with TemporaryDirectory() as tmp:
+            checkpoint = Path(tmp) / "step-010000.pt"
+            torch.save({"config": asdict(model.config), "model": model.state_dict(),
+                        "tokenizer": tokenizer.to_str()}, checkpoint)
+            loaded = TextGenerator.load(checkpoint)
+            self.assertIsInstance(loaded.model, CopyLLM)
+            for key, tensor in model.state_dict().items():
+                torch.testing.assert_close(loaded.model.state_dict()[key], tensor)
+
+    def test_generation_blocks_repeated_trigrams_before_top_k(self):
+        model = TinyLLM(width=16, layers=1, context=8).eval()
+        scores = torch.zeros(1, 256)
+        scores[0, ord("A")] = 10
+        scores[0, ord("B")] = 9
+        with patch.object(model, "next_scores", side_effect=lambda _: scores.clone()):
+            text, _ = TextGenerator(model).complete("AAAA", 4, top_k=1, no_repeat_ngram_size=3)
+        self.assertEqual(text, "AAAB")
 
     def test_span_decoder_preserves_unseen_words_and_rejects_word_fragments(self):
         tokenizer = train_tokenizer([Document("fixture", "ru", "На столе лежит книга.")], 270)

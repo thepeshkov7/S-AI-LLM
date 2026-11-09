@@ -112,11 +112,14 @@ class TinyLLM(nn.Module):
         losses = F.cross_entropy(logits, targets[active], reduction="none")
         return mean_answer_loss(losses, active.nonzero(as_tuple=True)[0], len(ids))
 
-    def next_scores(self, ids, positions=None):
+    def vocabulary_scores(self, ids, positions=None):
         hidden = self._encode(ids)
         if positions is None:
             return self.output(hidden[:, -1])
         return self.output(hidden[torch.arange(len(ids), device=ids.device), positions])
+
+    def next_scores(self, ids, positions=None):
+        return self.vocabulary_scores(ids, positions)
 
 
 class CopyLLM(TinyLLM):
@@ -194,3 +197,12 @@ class CopyLLM(TinyLLM):
         terms = torch.cat((vocab, literal.clamp_min(1e-30).log(), alias.clamp_min(1e-30).log()), dim=-1)
         losses = -(terms + self.copy_mode(states).float().log_softmax(dim=-1)).logsumexp(dim=-1)
         return mean_answer_loss(losses, rows, len(ids)) if equal_examples else losses.mean()
+
+
+def checkpoint_architecture(payload):
+    architecture = payload.get("architecture")
+    if (architecture is None and payload.get("format_version") is None
+            and "config" in payload and "tokenizer" in payload
+            and "copy_aliases" in payload["model"]):
+        return CopyLLM.architecture
+    return architecture

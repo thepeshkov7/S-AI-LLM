@@ -4,11 +4,12 @@ from collections import Counter
 from dataclasses import asdict
 import json
 from pathlib import Path
+import sys
 
 import torch
 from tokenizers import Tokenizer
 
-from model import CopyLLM, ModelConfig
+from model import CopyLLM, ModelConfig, checkpoint_architecture
 from packed_corpus import digest
 from train import EOS
 
@@ -18,7 +19,7 @@ PARAMETERS = 1_033_003_011
 
 def read_checkpoint(path):
     # Requires a local ZIP-format torch.save file. Stage Drive files onto the runtime disk.
-    return torch.load(path, map_location="cpu", weights_only=True, mmap=True)
+    return torch.load(path, map_location="cpu", weights_only=True, mmap=sys.platform != "win32")
 
 
 def read_tokenizer(payload):
@@ -29,17 +30,21 @@ def read_tokenizer(payload):
     return tokenizer
 
 
-def build_model(payload, device, dtype=torch.float32, *, require_1b=True):
+def build_model(payload, device, dtype=torch.float32, *, require_1b=True, recovery=False):
     config = ModelConfig(**payload["config"])
-    if payload.get("architecture") != CopyLLM.architecture or (require_1b and config != CONFIG):
+    if checkpoint_architecture(payload) != CopyLLM.architecture:
+        raise ValueError("Expected a CopyLLM checkpoint")
+    if require_1b and not recovery and config != CONFIG:
         raise ValueError("Expected a checkpoint of the original 1B copy_v1 model")
     with torch.device("meta"):
         model = CopyLLM(**asdict(config))
-    model.load_state_dict(payload["model"], strict=True, assign=True)
-    model = model.to(device=device, dtype=dtype)
-    if require_1b and sum(p.numel() for p in model.parameters()) != PARAMETERS:
+    parameters = sum(p.numel() for p in model.parameters())
+    if recovery and (config.vocab_size != 65536 or not 1_275_000_000 <= parameters <= 1_278_000_000):
+        raise ValueError("Expected the 65,536-token S AI 1.276B CopyLLM configuration")
+    if require_1b and not recovery and parameters != PARAMETERS:
         raise ValueError("Unexpected 1B parameter count")
-    return model
+    model.load_state_dict(payload["model"], strict=True, assign=True)
+    return model.to(device=device, dtype=dtype)
 
 
 def load_head(model, payload):

@@ -5,7 +5,6 @@ from dataclasses import asdict, dataclass
 import json
 import math
 from pathlib import Path
-from resource import RUSAGE_SELF, getrusage
 from time import monotonic
 
 import torch
@@ -34,6 +33,8 @@ class Profile:
     save_every: int = 12
     seed: int = 20261108
     warmup_steps: int | None = None
+    one_pass: bool = False
+    recovery_step: int | None = None
 
     def __post_init__(self):
         if min(self.steps, self.sequence_length, self.micro_batch, self.accumulation,
@@ -49,6 +50,11 @@ class Profile:
             raise ValueError("Unsupported optimizer or objective")
         if self.warmup_steps is not None and not 1 <= self.warmup_steps <= self.steps:
             raise ValueError("Warmup steps must be within the run")
+        if self.recovery_step is not None and (
+            self.recovery_step != 10000 or not self.one_pass or self.objective != "vocabulary"
+            or self.precision != "bf16"
+        ):
+            raise ValueError("Step-10000 recovery requires BF16 and one-pass vocabulary training")
 
 
 def configure(model, profile):
@@ -121,7 +127,20 @@ def evaluate(model, corpus, profile, split, device):
     return stats
 
 
-def update(model, optimizer, parameters, scaler, corpus, profile, sampler, device):
+def one_pass_windows(corpus, profile):
+    """Shuffle non-overlapping target windows without reusing a token position."""
+    order = torch.Generator().manual_seed(profile.seed + 2)
+    needed = profile.steps * profile.accumulation * profile.micro_batch // len(LANGUAGES)
+    windows = {}
+    for language in LANGUAGES:
+        available = (len(corpus.splits["train"][language]) - 1) // profile.sequence_length
+        if available < needed:
+            raise ValueError(f"One-pass schedule needs {needed} windows for {language}, but has {available}")
+        windows[language] = torch.randperm(available, generator=order)[:needed] * profile.sequence_length
+    return windows
+
+
+def update(model, optimizer, parameters, scaler, corpus, profile, sampler, device, step, windows):
     # Retry the same examples at a lower scale after an FP16 overflow.
     state = sampler.get_state()
     offsets = torch.arange(profile.sequence_length + 1)
@@ -132,8 +151,13 @@ def update(model, optimizer, parameters, scaler, corpus, profile, sampler, devic
         for index in range(profile.accumulation):
             lang = LANGUAGES[index % len(LANGUAGES)]
             stream = corpus.splits["train"][lang]
-            starts = torch.randint(len(stream) - profile.sequence_length, (profile.micro_batch,),
-                                   generator=sampler)
+            if windows is None:
+                starts = torch.randint(len(stream) - profile.sequence_length, (profile.micro_batch,),
+                                       generator=sampler)
+            else:
+                turn = ((step - 1) * profile.accumulation + index) // len(LANGUAGES)
+                start = turn * profile.micro_batch
+                starts = windows[lang][start:start + profile.micro_batch]
             loss = loss_for(model, make_batch(stream, starts, offsets, device), profile)
             total += loss.detach().item()
             if not math.isfinite(total):
@@ -153,7 +177,13 @@ def update(model, optimizer, parameters, scaler, corpus, profile, sampler, devic
 
 
 def runtime_stats(device):
-    stats = {"peak_rss_gib": round(getrusage(RUSAGE_SELF).ru_maxrss / 2**20, 3)}
+    stats = {}
+    try:
+        from resource import RUSAGE_SELF, getrusage
+    except ImportError:
+        pass
+    else:
+        stats["peak_rss_gib"] = round(getrusage(RUSAGE_SELF).ru_maxrss / 2**20, 3)
     if device == "cuda":
         stats.update(
             gpu=torch.cuda.get_device_name(), total_vram_gib=round(torch.cuda.mem_get_info()[1] / 2**30, 3),
@@ -163,7 +193,11 @@ def runtime_stats(device):
     return stats
 
 
-def train(corpus, profile, checkpoint, output, device, stop, *, resume=False, require_1b=True):
+def train(corpus, profile, checkpoint, output, device, stop, *, resume=False, require_1b=True,
+          deadline=None, max_session_tokens=None):
+    recovery = profile.recovery_step is not None
+    if recovery and (deadline is None or max_session_tokens is None):
+        raise ValueError("Step-10000 recovery requires explicit time and token budgets")
     if device == "cpu" and (profile.precision != "fp32" or profile.optimizer == "adamw8bit"):
         raise ValueError("CPU requires FP32 and standard AdamW")
     if device == "cuda" and not torch.cuda.is_available():
@@ -175,14 +209,23 @@ def train(corpus, profile, checkpoint, output, device, stop, *, resume=False, re
         torch.cuda.reset_peak_memory_stats()
     sampler = torch.Generator().manual_seed(profile.seed + 1)
     payload = read_checkpoint(checkpoint)
+    if recovery and not resume and (
+        checkpoint.name != "step-010000.pt" or payload.get("step", 10000) != 10000
+    ):
+        raise ValueError("Initialize recovery from the original step-010000.pt")
     tokenizer = read_tokenizer(payload)
     if tokenizer.to_str() != corpus.tokenizer.to_str():
         raise ValueError("The training corpus and original checkpoint need the same tokenizer")
     if any(len(corpus.splits["train"][lang]) <= profile.sequence_length for lang in LANGUAGES):
         raise ValueError("Training corpus is too short")
+    windows = one_pass_windows(corpus, profile) if profile.one_pass else None
     profile_settings = asdict(profile)
     if profile.warmup_steps is None:
         del profile_settings["warmup_steps"]
+    if not profile.one_pass:
+        del profile_settings["one_pass"]
+    if not recovery:
+        del profile_settings["recovery_step"]
     settings = {
         "profile": profile_settings, "corpus_sha256": corpus.fingerprint, "config": payload["config"],
         "device": device, "torch": str(torch.__version__), "gpu": torch.cuda.get_device_name() if device == "cuda" else None,
@@ -200,7 +243,14 @@ def train(corpus, profile, checkpoint, output, device, stop, *, resume=False, re
     state_path = output / "training-state.pt"
     if state_path.exists() and not resume:
         raise FileExistsError("This run already has a state. Use --resume or a new output directory.")
-    model = build_model(payload, device, require_1b=require_1b)
+    first = payload["step"] + 1 if resume else 1
+    tokens_per_step = profile.micro_batch * profile.accumulation * profile.sequence_length
+    if max_session_tokens is not None and (stop - first + 1) * tokens_per_step > max_session_tokens:
+        raise ValueError("Requested optimizer steps exceed --max-session-tokens")
+    if deadline is not None and monotonic() >= deadline:
+        print(json.dumps({"event": "paused", "step": first - 1, "reason": "time_budget"}), flush=True)
+        return payload["metrics"] if resume else None
+    model = build_model(payload, device, require_1b=require_1b, recovery=recovery)
     parameters = configure(model, profile)
     # CPU mmap shares storages with the source file; clone its trainable tensors
     # so an in-place optimizer can safely update only its own parameters.
@@ -218,35 +268,59 @@ def train(corpus, profile, checkpoint, output, device, stop, *, resume=False, re
         torch.random.set_rng_state(payload["torch_rng"])
         if device == "cuda":
             torch.cuda.set_rng_state(payload["cuda_rng"])
-        first = payload["step"] + 1
         metrics = payload["metrics"]
         initial_sha = payload["initial_sha256"]
     else:
-        first = 1
         initial_sha = digest(checkpoint)
         metrics = {
-            "baseline": evaluate(model, corpus, profile, "validation", device),
+            "baseline": None if recovery else evaluate(model, corpus, profile, "validation", device),
             "parameters": sum(p.numel() for p in model.parameters()),
             "trainable_parameters": sum(p.numel() for p in parameters),
             "training_seconds": 0.0, "overflow_retries": 0, "evaluations": [],
         }
-        print(json.dumps({"event": "baseline", **metrics, "runtime": runtime_stats(device)}), flush=True)
+        if not recovery:
+            print(json.dumps({"event": "baseline", **metrics, "runtime": runtime_stats(device)}), flush=True)
     del payload
     print(json.dumps({"event": "start", "first_step": first, "stop_after": stop,
                       "settings": settings, "initial_sha256": initial_sha}), flush=True)
-    tokens_per_step = profile.micro_batch * profile.accumulation * profile.sequence_length
+
+    def save(record):
+        step = record["step"]
+        metrics.update({"last": record, "runtime": runtime_stats(device)})
+        atomic_torch_save({
+            "run_format": 1, "format_version": 1, "architecture": model.architecture,
+            "config": asdict(model.config), "tokenizer": tokenizer.to_str(), "model": model.state_dict(),
+            "step": step, "initial_sha256": initial_sha, "settings": settings, "metrics": metrics,
+            "optimizer": optimizer.state_dict(), "scaler": scaler.state_dict(), "sampler": sampler.get_state(),
+            "torch_rng": torch.random.get_rng_state(),
+            "cuda_rng": torch.cuda.get_rng_state() if device == "cuda" else None,
+        }, state_path)
+        report = output / "metrics.json"
+        staged = report.with_suffix(".tmp")
+        staged.write_text(json.dumps({"settings": settings, "metrics": metrics}, indent=2, allow_nan=False) + "\n",
+                          encoding="utf-8")
+        staged.replace(report)
+        print(json.dumps({"event": "saved", "step": step, "path": str(state_path),
+                          "runtime": metrics["runtime"]}), flush=True)
+
+    record = None
     for step in range(first, stop + 1):
+        if deadline is not None and monotonic() >= deadline:
+            if record is not None and record["step"] != metrics.get("last", {}).get("step"):
+                save(record)
+            print(json.dumps({"event": "paused", "step": step - 1, "reason": "time_budget"}), flush=True)
+            break
         started = monotonic()
         model.train()
         lr = learning_rate(step, profile.steps, profile.lr, profile.warmup_steps)
         for group in optimizer.param_groups:
             group["lr"] = lr
-        if step == 1:
+        if step == 1 and not recovery:
             before = [block.qkv.weight[0, :32].detach().clone() for block in model.blocks]
-        loss, norm, retries = update(model, optimizer, parameters, scaler, corpus, profile, sampler, device)
+        loss, norm, retries = update(model, optimizer, parameters, scaler, corpus, profile, sampler, device, step, windows)
         metrics["training_seconds"] += monotonic() - started
         metrics["overflow_retries"] += retries
-        if step == 1:
+        if step == 1 and not recovery:
             metrics["updated_transformer_blocks"] = [
                 index + 1 for index, (block, start) in enumerate(zip(model.blocks, before, strict=True))
                 if not torch.equal(block.qkv.weight[0, :32], start)
@@ -255,29 +329,17 @@ def train(corpus, profile, checkpoint, output, device, stop, *, resume=False, re
                   "tokens": step * tokens_per_step, "tokens_each_language": step * tokens_per_step // len(LANGUAGES),
                   "tokens_including_retries": (step + metrics["overflow_retries"]) * tokens_per_step,
                   "train_tokens_per_second": round(step * tokens_per_step / metrics["training_seconds"], 2)}
-        if step == 1 or step % profile.eval_every == 0 or step == stop:
-            record["validation"] = evaluate(model, corpus, profile, "validation", device)
-            metrics["evaluations"].append(record)
-        if step == profile.steps:
-            record["test"] = evaluate(model, corpus, profile, "test", device)
+        if recovery:
+            record["model_step"] = profile.recovery_step + step
+        if deadline is None or monotonic() < deadline:
+            if step % profile.eval_every == 0 or (not recovery and step in (1, stop)):
+                record["validation"] = evaluate(model, corpus, profile, "validation", device)
+                metrics["evaluations"].append(record)
+            if step == profile.steps:
+                record["test"] = evaluate(model, corpus, profile, "test", device)
         print(json.dumps({"event": "step", **record}), flush=True)
         if step % profile.save_every == 0 or step == stop:
-            metrics.update({"last": record, "runtime": runtime_stats(device)})
-            atomic_torch_save({
-                "run_format": 1, "format_version": 1, "architecture": model.architecture,
-                "config": asdict(model.config), "tokenizer": tokenizer.to_str(), "model": model.state_dict(),
-                "step": step, "initial_sha256": initial_sha, "settings": settings, "metrics": metrics,
-                "optimizer": optimizer.state_dict(), "scaler": scaler.state_dict(), "sampler": sampler.get_state(),
-                "torch_rng": torch.random.get_rng_state(),
-                "cuda_rng": torch.cuda.get_rng_state() if device == "cuda" else None,
-            }, state_path)
-            report = output / "metrics.json"
-            staged = report.with_suffix(".tmp")
-            staged.write_text(json.dumps({"settings": settings, "metrics": metrics}, indent=2, allow_nan=False) + "\n",
-                              encoding="utf-8")
-            staged.replace(report)
-            print(json.dumps({"event": "saved", "step": step, "path": str(state_path),
-                              "runtime": metrics["runtime"]}), flush=True)
+            save(record)
     return metrics
 
 
@@ -288,6 +350,8 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--device", choices=("cpu", "cuda"), default="cuda")
     parser.add_argument("--stop-after", type=int)
+    parser.add_argument("--max-session-seconds", type=float)
+    parser.add_argument("--max-session-tokens", type=int)
     start = parser.add_mutually_exclusive_group(required=True)
     start.add_argument("--init", type=Path)
     start.add_argument("--resume", type=Path)
@@ -296,11 +360,21 @@ def main():
     stop = args.stop_after if args.stop_after is not None else profile.steps
     if not 1 <= stop <= profile.steps:
         parser.error("Stop step must be within the profile")
+    seconds = args.max_session_seconds
+    if seconds is not None and (not math.isfinite(seconds) or seconds <= 0):
+        parser.error("--max-session-seconds must be positive and finite")
+    if args.max_session_tokens is not None and args.max_session_tokens < 1:
+        parser.error("--max-session-tokens must be positive")
+    if profile.recovery_step is not None and (
+        args.stop_after is None or seconds is None or args.max_session_tokens is None
+    ):
+        parser.error("Step-10000 recovery requires --stop-after, --max-session-seconds and --max-session-tokens")
+    deadline = monotonic() + seconds if seconds is not None else None
     torch.set_num_threads(4)
     args.output.mkdir(parents=True, exist_ok=True)
     with FileLock(args.output / ".training.lock", timeout=0):
         train(PackedCorpus(args.corpus), profile, args.resume or args.init, args.output, args.device, stop,
-              resume=args.resume is not None)
+              resume=args.resume is not None, deadline=deadline, max_session_tokens=args.max_session_tokens)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,19 @@
+{
+  "recovery_step": 10000,
+  "steps": 1024,
+  "sequence_length": 256,
+  "micro_batch": 1,
+  "accumulation": 8,
+  "lr": 0.00003,
+  "warmup_steps": 32,
+  "precision": "bf16",
+  "optimizer": "adamw",
+  "gradient_checkpointing": true,
+  "last_blocks": 20,
+  "objective": "vocabulary",
+  "one_pass": true,
+  "eval_every": 256,
+  "eval_windows": 8,
+  "save_every": 32,
+  "seed": 20261109
+}
